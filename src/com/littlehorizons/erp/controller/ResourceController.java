@@ -93,10 +93,12 @@ public class ResourceController {
     }
 
     public List<Loan> listStudentLoans() {
+        resourceDao.markOverdueLoans();
         return resourceDao.findStudentLoans();
     }
 
     public List<Loan> listTeacherLoans() {
+        resourceDao.markOverdueLoans();
         return resourceDao.findTeacherLoans();
     }
 

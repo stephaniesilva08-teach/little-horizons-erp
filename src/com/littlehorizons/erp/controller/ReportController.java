@@ -2,6 +2,7 @@ package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.AttendanceDao;
 import com.littlehorizons.erp.dao.ReportDao;
+import com.littlehorizons.erp.dao.ResourceDao;
 import com.littlehorizons.erp.model.AttendanceSummary;
 import com.littlehorizons.erp.model.CourseAverage;
 import com.littlehorizons.erp.model.Debtor;
@@ -19,6 +20,7 @@ public class ReportController {
 
     private final ReportDao reportDao = new ReportDao();
     private final AttendanceDao attendanceDao = new AttendanceDao();
+    private final ResourceDao resourceDao = new ResourceDao();
 
     public List<CourseAverage> courseAverages(int academicYear) {
         requireYear(academicYear);
@@ -43,6 +45,7 @@ public class ReportController {
     }
 
     public List<OverdueLoan> overdueLoans() {
+        resourceDao.markOverdueLoans();
         return reportDao.overdueLoans();
     }
 

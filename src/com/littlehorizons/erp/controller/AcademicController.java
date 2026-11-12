@@ -47,7 +47,8 @@ public class AcademicController {
             throw new IllegalArgumentException("Falta el identificador de la nota.");
         }
         if (!Validator.isValidGrade(record.getGrade())) {
-            throw new IllegalArgumentException("La nota debe estar entre 0.0 y 5.0.");
+            throw new IllegalArgumentException(
+                    "La nota debe estar entre 0.0 y 5.0 con un solo decimal.");
         }
         if (!Validator.isValidDate(record.getRecordDate())) {
             throw new IllegalArgumentException("La fecha de registro es inválida.");
@@ -230,7 +231,8 @@ public class AcademicController {
             throw new IllegalArgumentException("El período es inválido.");
         }
         if (!Validator.isValidGrade(r.getGrade())) {
-            throw new IllegalArgumentException("La nota debe estar entre 0.0 y 5.0.");
+            throw new IllegalArgumentException(
+                    "La nota debe estar entre 0.0 y 5.0 con un solo decimal.");
         }
         if (!Validator.isValidDate(r.getRecordDate())) {
             throw new IllegalArgumentException("La fecha de registro es inválida.");

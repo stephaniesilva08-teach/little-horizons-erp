@@ -57,7 +57,8 @@ public final class Validator {
     public static boolean isValidGrade(BigDecimal grade) {
         return grade != null
                 && grade.compareTo(BigDecimal.ZERO) >= 0
-                && grade.compareTo(new BigDecimal("5.0")) <= 0;
+                && grade.compareTo(new BigDecimal("5.0")) <= 0
+                && grade.stripTrailingZeros().scale() <= 1;
     }
 
     public static boolean isValidAmount(BigDecimal amount) {

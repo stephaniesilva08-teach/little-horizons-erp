@@ -213,6 +213,43 @@ public class ResourceDao {
                 + "ORDER BY pp.fecha_prestamo DESC", "Profesor", idTeacher);
     }
 
+    /**
+     * Marks every active loan whose expected return date has passed as overdue.
+     *
+     * @return the number of loans updated.
+     */
+    public int markOverdueLoans() {
+        String studentSql = "UPDATE prestamos_estudiante SET estado_prestamo = 'Vencido' "
+                + "WHERE estado_prestamo = 'Activo' "
+                + "AND fecha_devolucion_esperada < CURRENT_DATE";
+        String teacherSql = "UPDATE prestamos_profesor SET estado_prestamo = 'Vencido' "
+                + "WHERE estado_prestamo = 'Activo' "
+                + "AND fecha_devolucion_esperada < CURRENT_DATE";
+        try (Connection connection = ConnectionFactory.getInstance().getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int updated;
+                try (PreparedStatement ps = connection.prepareStatement(studentSql)) {
+                    updated = ps.executeUpdate();
+                }
+                try (PreparedStatement ps = connection.prepareStatement(teacherSql)) {
+                    updated += ps.executeUpdate();
+                }
+                connection.commit();
+                return updated;
+            } catch (SQLException e) {
+                connection.rollback();
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            LoggerUtil.error("Could not mark overdue loans", e);
+            throw new DataAccessException(
+                    "No se pudieron actualizar los préstamos vencidos.", e);
+        }
+    }
+
     public void returnStudentLoan(int idLoan) {
         returnLoan("prestamos_estudiante", idLoan);
     }

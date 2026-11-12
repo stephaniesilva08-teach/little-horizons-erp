@@ -341,7 +341,8 @@ View → Controller → DAO → MySQL
 
 ### 10.4. Notas y asistencia
 
-- Registro de notas de 0.0 a 5.0 por estudiante, materia, profesor, año y período.
+- Registro de notas de 0.0 a 5.0 **con un solo decimal** por estudiante, materia,
+  profesor, año y período.
 - Promedio por período, promedio general y boletín detallado.
 - Asistencia por materia con estados `Presente`, `Ausente`, `Tardanza` y
   `Excusa Médica`.
@@ -416,6 +417,7 @@ Gracias por su pago.
 - Préstamos a estudiantes y profesores con fecha esperada de devolución.
 - Cambio automático de estado del recurso: `Disponible → Prestado → Disponible`.
 - Devolución transaccional y registro de fecha real.
+- Los préstamos con fecha esperada superada se marcan automáticamente como `Vencido`.
 - Reporte de préstamos vencidos.
 
 ### 10.8. Reportes
@@ -424,7 +426,8 @@ Gracias por su pago.
 - Boletín individual de notas.
 - Resumen de notas por materia y período (promedio, máxima, mínima, registros).
 - Resumen de asistencia.
-- Reporte de estudiantes morosos (cargado, pagado, saldo).
+- Reporte de estudiantes morosos con cargos pendientes vencidos hace más de un mes
+  (cargado, pagado, saldo).
 - Préstamos vencidos.
 - Resumen de matrícula por grado.
 

@@ -122,6 +122,10 @@ public class ReportDao {
                 + "FROM pagos GROUP BY id_estudiante) p "
                 + "ON p.id_estudiante = e.id_estudiante "
                 + "WHERE COALESCE(c.total, 0) - COALESCE(p.total, 0) > 0 "
+                + "AND EXISTS (SELECT 1 FROM cargos_estudiante ce "
+                + "WHERE ce.id_estudiante = e.id_estudiante "
+                + "AND ce.estado = 'Pendiente' "
+                + "AND ce.fecha_vencimiento < CURRENT_DATE - INTERVAL 1 MONTH) "
                 + "ORDER BY balance DESC";
         List<Debtor> list = new ArrayList<>();
         try (Connection connection = ConnectionFactory.getInstance().getConnection();
@@ -146,7 +150,7 @@ public class ReportDao {
                 + "ps.fecha_devolucion_esperada FROM prestamos_estudiante ps "
                 + "INNER JOIN recursos r ON r.id_recurso = ps.id_recurso "
                 + "INNER JOIN estudiantes e ON e.id_estudiante = ps.id_estudiante "
-                + "WHERE ps.estado_prestamo = 'Activo' "
+                + "WHERE ps.estado_prestamo IN ('Activo', 'Vencido') "
                 + "AND ps.fecha_devolucion_esperada < CURRENT_DATE "
                 + "UNION ALL "
                 + "SELECT pp.id_prestamo, r.nombre_recurso, CONCAT_WS(' ', "
@@ -154,7 +158,7 @@ public class ReportDao {
                 + "'Profesor', pp.fecha_devolucion_esperada FROM prestamos_profesor pp "
                 + "INNER JOIN recursos r ON r.id_recurso = pp.id_recurso "
                 + "INNER JOIN profesores p ON p.id_profesor = pp.id_profesor "
-                + "WHERE pp.estado_prestamo = 'Activo' "
+                + "WHERE pp.estado_prestamo IN ('Activo', 'Vencido') "
                 + "AND pp.fecha_devolucion_esperada < CURRENT_DATE "
                 + "ORDER BY fecha_devolucion_esperada";
         List<OverdueLoan> list = new ArrayList<>();
