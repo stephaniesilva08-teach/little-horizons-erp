@@ -232,8 +232,6 @@ crean en la carpeta `facturas/` del directorio desde el cual se ejecuta la aplic
 > Antes de ejecutar, configure `ERP_DB_USER` y `ERP_DB_PASSWORD` como se explica en la
 > sección 6.2. La aplicación no incluye credenciales embebidas y no inicia sin ellas.
 
----
-
 ## 8. Estructura del Proyecto
 
 ### Arquitectura MVC + DAO
@@ -250,10 +248,10 @@ Little-horizons-erp/
 │   └── com/littlehorizons/erp/
 │       ├── Main.java                # Punto de entrada
 │       ├── model/                   # Entidades del dominio y DTOs (records)
-│       ├── dao/                     # Acceso a datos con JDBC/PreparedStatement
+│       ├── dao/                     # Interfaces de persistencia + implementaciones Jdbc*
 │       ├── controller/              # Reglas de negocio y validaciones
 │       ├── view/                    # Menús e interfaz de consola
-│       └── util/                    # Conexión, validación, logs, facturas .txt, consola
+│       └── util/                    # Pool de conexiones, validación, logs, facturas .txt
 ├── pom.xml
 └── README.md
 ```
@@ -263,10 +261,10 @@ Little-horizons-erp/
 | Paquete | Responsabilidad |
 |---|---|
 | `model` | Clases de dominio (`Student`, `Parent`, `Teacher`, `Subject`, `Payment`, etc.) y records para reportes (`CourseAverage`, `Debtor`, `OverdueLoan`, etc.). |
-| `dao` | SQL, mapeo `ResultSet` → objeto, transacciones y acceso a MySQL. Ningún DAO imprime por consola. |
-| `controller` | Validaciones, reglas de negocio, coordinación entre DAOs y generación de facturas. |
+| `dao` | Interfaces de persistencia (`StudentDao`, `FinanceDao`, …) e implementaciones `Jdbc*Dao` con SQL, mapeo `ResultSet` → objeto y transacciones. Ningún DAO imprime por consola. |
+| `controller` | Validaciones, reglas de negocio, coordinación entre DAOs y generación de facturas. Recibe sus DAOs por constructor. |
 | `view` | Menús, lectura de datos, tablas de salida y mensajes al usuario. |
-| `util` | `ConnectionFactory` (Singleton), `Validator`, `LoggerUtil`, `ConsoleUtils`, `TextInvoiceGenerator`, `FileUtil`, `DataAccessException`. |
+| `util` | `ConnectionProvider`, `ConnectionPool`, `Database` (composición), `ConnectionFactory`, `Validator`, `LoggerUtil`, `ConsoleUtils`, `TextInvoiceGenerator`, `FileUtil`, `DataAccessException`. |
 
 Flujo típico:
 
@@ -289,18 +287,25 @@ View → Controller → DAO → MySQL
   existentes; los records de reporte permiten nuevas consultas sin romper contratos.
 - **L — Liskov Substitution:** los modelos son sustituibles por sus abstracciones y los
   records de reporte son inmutables y consistentes.
-- **I — Interface Segregation:** los controladores exponen únicamente las operaciones que
-  cada vista necesita; no se obliga a una vista a depender de métodos que no usa.
-- **D — Dependency Inversion:** las capas superiores dependen de controladores/DAOs con
-  responsabilidades claras y de `ConnectionFactory` como abstracción de configuración,
-  no de credenciales embebidas en la lógica.
+- **I — Interface Segregation:** cada DAO expone una interfaz con las operaciones de su
+  módulo (`StudentDao`, `FinanceDao`, …); los controladores dependen solo de esos
+  contratos y no de detalles JDBC.
+- **D — Dependency Inversion:** los controladores reciben sus DAOs por constructor y los
+  DAOs reciben un `ConnectionProvider`; la implementación concreta (pool o doble de
+  prueba) se decide en el punto de composición (`Database`).
 
 ### 9.2. Patrones de Diseño
 
 - **MVC (Model-View-Controller):** separación estricta entre dominio, interfaz y lógica.
-- **DAO (Data Access Object):** todo el SQL vive en `dao/`; facilita mantenimiento y
-  pruebas.
-- **Singleton:** `ConnectionFactory` mantiene una única configuración de conexión.
+- **DAO (Data Access Object):** todo el SQL vive en las implementaciones `Jdbc*Dao`;
+  los controladores trabajan contra las interfaces de `dao/`.
+- **Dependency Injection por constructor:** controladores y DAOs declaran sus
+  dependencias en el constructor; las vistas usan el constructor sin argumentos, que
+  enlaza las implementaciones reales.
+- **Object Pool:** `ConnectionPool` reutiliza un máximo de 5 conexiones, las valida antes
+  de entregarlas y las devuelve al pool al cerrarlas.
+- **Singleton:** `ConnectionFactory` mantiene una única configuración de conexión y
+  `Database` una única instancia del pool.
 - **Factory / utilidades estáticas:** `TextInvoiceGenerator.generate(...)` encapsula la
   creación de facturas y devuelve un `GeneratedInvoice` inmutable.
 - **DTO con `record`:** reportes y proyecciones (`CourseAverage`, `Debtor`,

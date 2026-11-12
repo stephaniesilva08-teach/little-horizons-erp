@@ -5,6 +5,11 @@ import com.littlehorizons.erp.dao.AssignmentDao;
 import com.littlehorizons.erp.dao.AttendanceDao;
 import com.littlehorizons.erp.dao.EnrollmentDao;
 import com.littlehorizons.erp.dao.GradeDao;
+import com.littlehorizons.erp.dao.JdbcGradeDao;
+import com.littlehorizons.erp.dao.JdbcEnrollmentDao;
+import com.littlehorizons.erp.dao.JdbcAssignmentDao;
+import com.littlehorizons.erp.dao.JdbcAttendanceDao;
+import com.littlehorizons.erp.dao.JdbcAcademicRecordDao;
 import com.littlehorizons.erp.model.AcademicRecord;
 import com.littlehorizons.erp.model.Attendance;
 import com.littlehorizons.erp.model.AttendanceAlert;
@@ -27,11 +32,23 @@ import java.util.List;
  */
 public class AcademicController {
 
-    private final AcademicRecordDao recordDao = new AcademicRecordDao();
-    private final AttendanceDao attendanceDao = new AttendanceDao();
-    private final AssignmentDao assignmentDao = new AssignmentDao();
-    private final EnrollmentDao enrollmentDao = new EnrollmentDao();
-    private final GradeDao gradeDao = new GradeDao();
+    private final AcademicRecordDao recordDao;
+    private final AttendanceDao attendanceDao;
+    private final AssignmentDao assignmentDao;
+    private final EnrollmentDao enrollmentDao;
+    private final GradeDao gradeDao;
+
+    public AcademicController() {
+        this(new JdbcAcademicRecordDao(), new JdbcAttendanceDao(), new JdbcAssignmentDao(), new JdbcEnrollmentDao(), new JdbcGradeDao());
+    }
+
+    public AcademicController(AcademicRecordDao recordDao, AttendanceDao attendanceDao, AssignmentDao assignmentDao, EnrollmentDao enrollmentDao, GradeDao gradeDao) {
+        this.recordDao = recordDao;
+        this.attendanceDao = attendanceDao;
+        this.assignmentDao = assignmentDao;
+        this.enrollmentDao = enrollmentDao;
+        this.gradeDao = gradeDao;
+    }
 
     public List<Grade> listGrades() {
         return gradeDao.findAll();

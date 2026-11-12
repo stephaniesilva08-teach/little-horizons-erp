@@ -2,6 +2,8 @@ package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.ParentDao;
 import com.littlehorizons.erp.dao.StudentDao;
+import com.littlehorizons.erp.dao.JdbcParentDao;
+import com.littlehorizons.erp.dao.JdbcStudentDao;
 import com.littlehorizons.erp.model.Student;
 import com.littlehorizons.erp.util.Validator;
 
@@ -13,8 +15,17 @@ import java.util.List;
  */
 public class StudentController {
 
-    private final StudentDao studentDao = new StudentDao();
-    private final ParentDao parentDao = new ParentDao();
+    private final StudentDao studentDao;
+    private final ParentDao parentDao;
+
+    public StudentController() {
+        this(new JdbcStudentDao(), new JdbcParentDao());
+    }
+
+    public StudentController(StudentDao studentDao, ParentDao parentDao) {
+        this.studentDao = studentDao;
+        this.parentDao = parentDao;
+    }
 
     public int register(Student student, int idParent) {
         validate(student, true);

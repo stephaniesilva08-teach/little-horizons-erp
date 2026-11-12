@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.SubjectDao;
+import com.littlehorizons.erp.dao.JdbcSubjectDao;
 import com.littlehorizons.erp.model.Subject;
 import com.littlehorizons.erp.util.Validator;
 
@@ -11,7 +12,15 @@ import java.util.List;
  */
 public class SubjectController {
 
-    private final SubjectDao subjectDao = new SubjectDao();
+    private final SubjectDao subjectDao;
+
+    public SubjectController() {
+        this(new JdbcSubjectDao());
+    }
+
+    public SubjectController(SubjectDao subjectDao) {
+        this.subjectDao = subjectDao;
+    }
 
     public int register(Subject subject) {
         validate(subject);

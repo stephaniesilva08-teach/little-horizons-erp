@@ -1,6 +1,7 @@
 package com.littlehorizons.erp;
 
 import com.littlehorizons.erp.util.ConnectionFactory;
+import com.littlehorizons.erp.util.Database;
 import com.littlehorizons.erp.util.LoggerUtil;
 import com.littlehorizons.erp.view.MainMenu;
 
@@ -37,6 +38,8 @@ public class Main {
             System.err.println("conexión (ERP_DB_URL, ERP_DB_USER, ERP_DB_PASSWORD)");
             System.err.println("sean correctos. Detalle: " + e.getMessage());
             System.exit(1);
+        } finally {
+            Database.shutdown();
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.FinanceDao;
+import com.littlehorizons.erp.dao.JdbcFinanceDao;
 import com.littlehorizons.erp.model.Charge;
 import com.littlehorizons.erp.model.Invoice;
 import com.littlehorizons.erp.model.Parent;
@@ -24,7 +25,15 @@ import java.util.List;
  */
 public class FinanceController {
 
-    private final FinanceDao financeDao = new FinanceDao();
+    private final FinanceDao financeDao;
+
+    public FinanceController() {
+        this(new JdbcFinanceDao());
+    }
+
+    public FinanceController(FinanceDao financeDao) {
+        this.financeDao = financeDao;
+    }
 
     public List<PaymentConcept> listActiveConcepts() {
         return financeDao.findActiveConcepts();

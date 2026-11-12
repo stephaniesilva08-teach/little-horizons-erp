@@ -3,6 +3,9 @@ package com.littlehorizons.erp.controller;
 import com.littlehorizons.erp.dao.AttendanceDao;
 import com.littlehorizons.erp.dao.ReportDao;
 import com.littlehorizons.erp.dao.ResourceDao;
+import com.littlehorizons.erp.dao.JdbcResourceDao;
+import com.littlehorizons.erp.dao.JdbcAttendanceDao;
+import com.littlehorizons.erp.dao.JdbcReportDao;
 import com.littlehorizons.erp.model.AttendanceSummary;
 import com.littlehorizons.erp.model.CourseAverage;
 import com.littlehorizons.erp.model.Debtor;
@@ -18,9 +21,19 @@ import java.util.List;
  */
 public class ReportController {
 
-    private final ReportDao reportDao = new ReportDao();
-    private final AttendanceDao attendanceDao = new AttendanceDao();
-    private final ResourceDao resourceDao = new ResourceDao();
+    private final ReportDao reportDao;
+    private final AttendanceDao attendanceDao;
+    private final ResourceDao resourceDao;
+
+    public ReportController() {
+        this(new JdbcReportDao(), new JdbcAttendanceDao(), new JdbcResourceDao());
+    }
+
+    public ReportController(ReportDao reportDao, AttendanceDao attendanceDao, ResourceDao resourceDao) {
+        this.reportDao = reportDao;
+        this.attendanceDao = attendanceDao;
+        this.resourceDao = resourceDao;
+    }
 
     public List<CourseAverage> courseAverages(int academicYear) {
         requireYear(academicYear);

@@ -14,7 +14,7 @@ import java.util.List;
  * environment variables. User and password are mandatory: the application
  * must never ship with embedded database credentials.</p>
  */
-public final class ConnectionFactory {
+public final class ConnectionFactory implements ConnectionProvider {
 
     private static final String DEFAULT_URL =
             "jdbc:mysql://localhost:3306/erp_little_horizons"

@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.ParentDao;
+import com.littlehorizons.erp.dao.JdbcParentDao;
 import com.littlehorizons.erp.model.Parent;
 import com.littlehorizons.erp.util.Validator;
 
@@ -11,7 +12,15 @@ import java.util.List;
  */
 public class ParentController {
 
-    private final ParentDao parentDao = new ParentDao();
+    private final ParentDao parentDao;
+
+    public ParentController() {
+        this(new JdbcParentDao());
+    }
+
+    public ParentController(ParentDao parentDao) {
+        this.parentDao = parentDao;
+    }
 
     public int register(Parent parent) {
         validate(parent, true);

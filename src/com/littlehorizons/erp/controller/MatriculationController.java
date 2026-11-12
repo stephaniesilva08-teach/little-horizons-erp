@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.MatriculationDao;
+import com.littlehorizons.erp.dao.JdbcMatriculationDao;
 import com.littlehorizons.erp.model.Matriculation;
 import com.littlehorizons.erp.util.Validator;
 
@@ -11,7 +12,15 @@ import java.util.List;
  */
 public class MatriculationController {
 
-    private final MatriculationDao matriculationDao = new MatriculationDao();
+    private final MatriculationDao matriculationDao;
+
+    public MatriculationController() {
+        this(new JdbcMatriculationDao());
+    }
+
+    public MatriculationController(MatriculationDao matriculationDao) {
+        this.matriculationDao = matriculationDao;
+    }
 
     public int register(Matriculation matriculation) {
         validate(matriculation, true);

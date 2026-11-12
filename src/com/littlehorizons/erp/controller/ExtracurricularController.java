@@ -2,6 +2,8 @@ package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.ClubDao;
 import com.littlehorizons.erp.dao.EventDao;
+import com.littlehorizons.erp.dao.JdbcEventDao;
+import com.littlehorizons.erp.dao.JdbcClubDao;
 import com.littlehorizons.erp.model.Club;
 import com.littlehorizons.erp.model.Event;
 import com.littlehorizons.erp.model.Membership;
@@ -15,8 +17,17 @@ import java.util.List;
  */
 public class ExtracurricularController {
 
-    private final ClubDao clubDao = new ClubDao();
-    private final EventDao eventDao = new EventDao();
+    private final ClubDao clubDao;
+    private final EventDao eventDao;
+
+    public ExtracurricularController() {
+        this(new JdbcClubDao(), new JdbcEventDao());
+    }
+
+    public ExtracurricularController(ClubDao clubDao, EventDao eventDao) {
+        this.clubDao = clubDao;
+        this.eventDao = eventDao;
+    }
 
     public int createClub(Club club) {
         validateClub(club);

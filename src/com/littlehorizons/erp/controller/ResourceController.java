@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.ResourceDao;
+import com.littlehorizons.erp.dao.JdbcResourceDao;
 import com.littlehorizons.erp.model.Loan;
 import com.littlehorizons.erp.model.Resource;
 import com.littlehorizons.erp.model.ResourceCategory;
@@ -14,7 +15,15 @@ import java.util.List;
  */
 public class ResourceController {
 
-    private final ResourceDao resourceDao = new ResourceDao();
+    private final ResourceDao resourceDao;
+
+    public ResourceController() {
+        this(new JdbcResourceDao());
+    }
+
+    public ResourceController(ResourceDao resourceDao) {
+        this.resourceDao = resourceDao;
+    }
 
     public List<ResourceCategory> listCategories() {
         return resourceDao.findAllCategories();

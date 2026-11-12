@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.controller;
 
 import com.littlehorizons.erp.dao.TeacherDao;
+import com.littlehorizons.erp.dao.JdbcTeacherDao;
 import com.littlehorizons.erp.model.Teacher;
 import com.littlehorizons.erp.util.Validator;
 
@@ -11,7 +12,15 @@ import java.util.List;
  */
 public class TeacherController {
 
-    private final TeacherDao teacherDao = new TeacherDao();
+    private final TeacherDao teacherDao;
+
+    public TeacherController() {
+        this(new JdbcTeacherDao());
+    }
+
+    public TeacherController(TeacherDao teacherDao) {
+        this.teacherDao = teacherDao;
+    }
 
     public int register(Teacher teacher) {
         validate(teacher);
