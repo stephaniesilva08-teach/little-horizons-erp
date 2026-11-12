@@ -12,8 +12,7 @@
 -- Motor: MySQL 8.0 o superior (REQUERIDO)
 -- ============================================
 
-DROP DATABASE IF EXISTS erp_little_horizons;
-CREATE DATABASE erp_little_horizons CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS erp_little_horizons CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE erp_little_horizons;
 
 -- ============================================

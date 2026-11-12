@@ -98,8 +98,10 @@ de consola dirigidos al usuario y los nombres de columnas SQL están en español
 ### 6.1. Creación de la base de datos
 
 El script `docs/database.sql` contiene el DDL completo y los datos de prueba (mínimo 30
-registros en las tablas principales). Al inicio ejecuta `DROP DATABASE IF EXISTS
-erp_little_horizons`, por lo que **reemplaza** cualquier versión existente.
+registros en las tablas principales). Crea `erp_little_horizons` si no existe y no borra
+la base de datos ni sus datos. Está pensado para una base vacía: si las tablas ya existen,
+MySQL detendrá la ejecución al encontrar nombres duplicados; para reinstalar desde cero,
+respalde los datos y elimine la base manualmente antes de ejecutar el script.
 
 ```bash
 mysql -u root -p < docs/database.sql
@@ -591,7 +593,9 @@ java -cp "out:lib/mysql-connector-j-8.4.0.jar" com.littlehorizons.erp.Main
 El flujo valida:
 
 1. Conexión exitosa a la base de datos `erp_little_horizons`.
-2. Menú principal interactivo con navegación entre los 7 módulos del sistema.
+2. Menú principal interactivo con navegación entre sus módulos: estudiantes, acudientes,
+   profesores, materias, matrículas, gestión académica, actividades extracurriculares,
+   finanzas, recursos y reportes.
 3. Operaciones CRUD completas para estudiantes, acudientes, profesores y materias.
 4. Registro de pagos y generación automática de la factura electrónica en formato `.txt` (`facturas/factura_*.txt`).
 5. Préstamo y devolución de recursos con actualización atómica de inventario.
