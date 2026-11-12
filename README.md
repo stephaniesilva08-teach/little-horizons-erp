@@ -110,40 +110,44 @@ ejecutándolo completo. Al final, el script muestra un conteo de verificación p
 
 ### 6.2. Configuración de credenciales
 
-La aplicación usa por defecto:
+La aplicación **no incluye credenciales embebidas**. Antes de ejecutar, define las
+siguientes variables de entorno:
 
-| Parámetro | Valor |
-|---|---|
-| Base de datos | `erp_little_horizons` |
-| Usuario | `nathalia123` |
-| Contraseña | `1234` |
-| Host / puerto | `localhost:3306` |
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `ERP_DB_USER` | Sí | Usuario de MySQL. |
+| `ERP_DB_PASSWORD` | Sí | Contraseña del usuario. |
+| `ERP_DB_URL` | No | URL JDBC. Por defecto apunta a `localhost:3306/erp_little_horizons` con `sslMode=PREFERRED`. |
 
-Si el usuario no existe, se puede crear con:
+Si falta `ERP_DB_USER` o `ERP_DB_PASSWORD`, la aplicación muestra un mensaje claro y
+termina con código de salida 1.
+
+Si el usuario no existe, se puede crear uno dedicado con:
 
 ```sql
-CREATE USER IF NOT EXISTS 'nathalia123'@'localhost' IDENTIFIED BY '1234';
-GRANT ALL PRIVILEGES ON erp_little_horizons.* TO 'nathalia123'@'localhost';
+CREATE USER IF NOT EXISTS 'erp_user'@'localhost' IDENTIFIED BY 'una_clave_segura';
+GRANT ALL PRIVILEGES ON erp_little_horizons.* TO 'erp_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-Para usar otras credenciales, definir variables de entorno antes de ejecutar:
+Configurar en Linux/macOS:
 
 ```bash
-export ERP_DB_URL='jdbc:mysql://localhost:3306/erp_little_horizons?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8'
-export ERP_DB_USER='mi_usuario'
-export ERP_DB_PASSWORD='mi_clave'
+export ERP_DB_USER='erp_user'
+export ERP_DB_PASSWORD='una_clave_segura'
+# Opcional:
+# export ERP_DB_URL='jdbc:mysql://localhost:3306/erp_little_horizons?sslMode=PREFERRED&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8'
 ```
 
 En Windows CMD:
 
 ```bat
-set ERP_DB_URL=jdbc:mysql://localhost:3306/erp_little_horizons?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
-set ERP_DB_USER=mi_usuario
-set ERP_DB_PASSWORD=mi_clave
+set ERP_DB_USER=erp_user
+set ERP_DB_PASSWORD=una_clave_segura
 ```
 
-Si no se definen, `ConnectionFactory` aplica los valores por defecto indicados.
+Para producción se recomienda `sslMode=VERIFY_IDENTITY` y un usuario con permisos
+mínimos sobre la base de datos.
 
 ### 6.3. Instalación del driver JDBC
 
@@ -224,6 +228,9 @@ java -jar target/erp-little-horizons-1.0.0.jar
 
 La aplicación verifica la conexión antes de mostrar el menú principal. Las facturas se
 crean en la carpeta `facturas/` del directorio desde el cual se ejecuta la aplicación.
+
+> Antes de ejecutar, configure `ERP_DB_USER` y `ERP_DB_PASSWORD` como se explica en la
+> sección 6.2. La aplicación no incluye credenciales embebidas y no inicia sin ellas.
 
 ---
 
@@ -548,9 +555,12 @@ garantía comercial ni soporte oficial.
 
 ## Anexo A — Verificación del Sistema
 
-La verificación funcional se realiza ejecutando la aplicación directamente desde la consola:
+La verificación funcional se realiza ejecutando la aplicación directamente desde la consola.
+Primero configure las credenciales (sección 6.2):
 
 ```bash
+export ERP_DB_USER='erp_user'
+export ERP_DB_PASSWORD='una_clave_segura'
 java -cp "out:lib/mysql-connector-j-8.4.0.jar" com.littlehorizons.erp.Main
 ```
 

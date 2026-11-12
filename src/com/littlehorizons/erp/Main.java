@@ -16,17 +16,17 @@ public class Main {
         System.out.println("==========================================================");
         System.out.println("   COLEGIO LITTLE HORIZONS - ERP DE GESTIÓN EDUCATIVA");
         System.out.println("==========================================================");
+        String configError = ConnectionFactory.missingConfiguration();
+        if (configError != null) {
+            System.err.println(configError);
+            System.err.println("Consulte la sección 6.2 del README para configurar");
+            System.err.println("ERP_DB_USER y ERP_DB_PASSWORD.");
+            System.exit(1);
+        }
         ConnectionFactory factory = ConnectionFactory.getInstance();
         try (Connection ignored = factory.getConnection()) {
             System.out.println("  Conexión a la base de datos establecida.");
             System.out.println("  Base de datos: erp_little_horizons");
-            if (factory.isUsingDefaultCredentials()) {
-                System.out.println();
-                System.out.println("  ADVERTENCIA: se usan las credenciales de desarrollo");
-                System.out.println("  por defecto. Defina ERP_DB_USER y ERP_DB_PASSWORD");
-                System.out.println("  antes de ejecutar el sistema en producción.");
-                LoggerUtil.warn("Default development database credentials are in use");
-            }
             LoggerUtil.info("Application started");
             new MainMenu().show();
         } catch (SQLException e) {
