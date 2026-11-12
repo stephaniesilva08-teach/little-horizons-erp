@@ -232,6 +232,23 @@ crean en la carpeta `facturas/` del directorio desde el cual se ejecuta la aplic
 > Antes de ejecutar, configure `ERP_DB_USER` y `ERP_DB_PASSWORD` como se explica en la
 > sección 6.2. La aplicación no incluye credenciales embebidas y no inicia sin ellas.
 
+### 7.5. Ejecutar las pruebas
+
+La suite usa un runner mínimo incluido en `test/`, sin JUnit ni dependencias externas:
+
+```bash
+mkdir -p out-test
+javac --release 17 -encoding UTF-8 -cp lib/mysql-connector-j-8.4.0.jar \
+      -d out-test $(find src test -name "*.java")
+java -cp "out-test:lib/mysql-connector-j-8.4.0.jar" com.littlehorizons.erp.test.AllTests
+```
+
+Cubre validaciones de entrada, formato de facturas, reglas de registro de estudiantes
+con DAOs en memoria y el ciclo de vida del pool de conexiones. No requiere base de
+datos.
+
+---
+
 ## 8. Estructura del Proyecto
 
 ### Arquitectura MVC + DAO
@@ -252,6 +269,7 @@ Little-horizons-erp/
 │       ├── controller/              # Reglas de negocio y validaciones
 │       ├── view/                    # Menús e interfaz de consola
 │       └── util/                    # Pool de conexiones, validación, logs, facturas .txt
+├── test/                            # Suite de pruebas sin dependencias externas
 ├── pom.xml
 └── README.md
 ```
@@ -265,6 +283,7 @@ Little-horizons-erp/
 | `controller` | Validaciones, reglas de negocio, coordinación entre DAOs y generación de facturas. Recibe sus DAOs por constructor. |
 | `view` | Menús, lectura de datos, tablas de salida y mensajes al usuario. |
 | `util` | `ConnectionProvider`, `ConnectionPool`, `Database` (composición), `ConnectionFactory`, `Validator`, `LoggerUtil`, `ConsoleUtils`, `TextInvoiceGenerator`, `FileUtil`, `DataAccessException`. |
+| `test` | Runner y casos de prueba en Java puro, con dobles en memoria para los DAOs. |
 
 Flujo típico:
 
@@ -577,6 +596,9 @@ El flujo valida:
 4. Registro de pagos y generación automática de la factura electrónica en formato `.txt` (`facturas/factura_*.txt`).
 5. Préstamo y devolución de recursos con actualización atómica de inventario.
 6. Generación de reportes de notas, promedios, inasistencias y morosidad.
+
+La suite `com.littlehorizons.erp.test.AllTests` (sección 7.5) valida sin base de datos las
+validaciones, el formato de facturas, las reglas de registro y el pool de conexiones.
 
 ## Anexo B — Cambios justificados al esquema
 
