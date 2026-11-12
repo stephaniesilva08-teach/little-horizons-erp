@@ -29,7 +29,7 @@ public class StudentView {
             System.out.println("  2. Buscar estudiante");
             System.out.println("  3. Registrar estudiante");
             System.out.println("  4. Actualizar estudiante");
-            System.out.println("  5. Eliminar estudiante");
+            System.out.println("  5. Retirar estudiante");
             System.out.println("  6. Asociar acudiente");
             System.out.println("  0. Volver al menú principal");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 6);
@@ -110,7 +110,7 @@ public class StudentView {
             ConsoleUtils.printError("El estudiante no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Estudiante eliminado correctamente.");
+                    "Estudiante retirado; se conserva su historial.");
         }
         ConsoleUtils.pause();
     }

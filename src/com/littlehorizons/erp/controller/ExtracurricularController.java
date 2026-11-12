@@ -71,10 +71,8 @@ public class ExtracurricularController {
         if (club == null) {
             throw new IllegalArgumentException("El club no existe.");
         }
-        int current = clubDao.countActiveMembers(membership.getIdClub());
-        if (current >= club.getMaxCapacity()) {
-            throw new IllegalArgumentException("El club alcanzó su capacidad máxima ("
-                    + club.getMaxCapacity() + ").");
+        if (!club.isActive()) {
+            throw new IllegalArgumentException("El club no está activo.");
         }
         membership.setState("Activa");
         return clubDao.insertMembership(membership);
@@ -144,6 +142,11 @@ public class ExtracurricularController {
         if (!Validator.isOneOf(participant.getRole(), "Participante", "Competidor",
                 "Organizador", "Asistente")) {
             throw new IllegalArgumentException("Rol de participación inválido.");
+        }
+        if (Validator.isNotEmpty(participant.getPosition())
+                && !Validator.isOneOf(participant.getPosition(), "1er Lugar", "2do Lugar",
+                        "3er Lugar", "Participante")) {
+            throw new IllegalArgumentException("La posición obtenida es inválida.");
         }
         return eventDao.insertParticipant(participant);
     }

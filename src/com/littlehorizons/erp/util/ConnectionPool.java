@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Small bounded pool of JDBC connections.
@@ -34,7 +33,8 @@ public final class ConnectionPool implements ConnectionProvider, AutoCloseable {
     private final int maxSize;
     private final long acquireTimeoutMillis;
     private final BlockingQueue<Connection> idle;
-    private final AtomicInteger openConnections = new AtomicInteger();
+    private final Object stateLock = new Object();
+    private int openConnections;
     private volatile boolean closed;
 
     public ConnectionPool(ConnectionProvider source) {
@@ -68,17 +68,26 @@ public final class ConnectionPool implements ConnectionProvider, AutoCloseable {
             Connection pooled = idle.poll();
             if (pooled != null) {
                 if (isUsable(pooled)) {
-                    return wrap(pooled);
+                    return checkout(pooled);
                 }
                 discard(pooled);
                 continue;
             }
-            if (openConnections.get() < maxSize
-                    && openConnections.incrementAndGet() <= maxSize) {
+            if (reserveSlot()) {
                 try {
-                    return wrap(source.getConnection());
+                    Connection physical = source.getConnection();
+                    if (physical == null) {
+                        throw new SQLException("The connection source returned null.");
+                    }
+                    synchronized (stateLock) {
+                        if (closed) {
+                            closeQuietly(physical);
+                            throw new SQLException("The connection pool is closed.");
+                        }
+                        return wrap(physical);
+                    }
                 } catch (SQLException | RuntimeException e) {
-                    openConnections.decrementAndGet();
+                    releaseReservedSlot();
                     throw e;
                 }
             }
@@ -100,7 +109,7 @@ public final class ConnectionPool implements ConnectionProvider, AutoCloseable {
                         + acquireTimeoutMillis + " ms.");
             }
             if (isUsable(pooled)) {
-                return wrap(pooled);
+                return checkout(pooled);
             }
             discard(pooled);
         }
@@ -110,7 +119,9 @@ public final class ConnectionPool implements ConnectionProvider, AutoCloseable {
      * Number of connections currently created, either idle or in use.
      */
     public int openConnections() {
-        return openConnections.get();
+        synchronized (stateLock) {
+            return openConnections;
+        }
     }
 
     /**
@@ -122,39 +133,72 @@ public final class ConnectionPool implements ConnectionProvider, AutoCloseable {
 
     @Override
     public void close() {
-        closed = true;
         List<Connection> toClose = new ArrayList<>();
-        idle.drainTo(toClose);
+        synchronized (stateLock) {
+            closed = true;
+            idle.drainTo(toClose);
+            openConnections -= toClose.size();
+        }
         for (Connection connection : toClose) {
             closeQuietly(connection);
-            openConnections.decrementAndGet();
         }
     }
 
     private void release(Connection physical) {
-        if (closed) {
-            closeQuietly(physical);
-            openConnections.decrementAndGet();
-            return;
-        }
         try {
             if (!physical.getAutoCommit()) {
                 physical.rollback();
                 physical.setAutoCommit(true);
             }
-            if (isUsable(physical) && idle.offer(physical)) {
-                return;
-            }
         } catch (SQLException e) {
             // Fall through and discard the broken connection.
+            closeQuietly(physical);
+            releaseReservedSlot();
+            return;
+        }
+        boolean usable = isUsable(physical);
+        synchronized (stateLock) {
+            if (!closed && usable && idle.offer(physical)) {
+                return;
+            }
+            openConnections--;
         }
         closeQuietly(physical);
-        openConnections.decrementAndGet();
     }
 
     private void discard(Connection physical) {
         closeQuietly(physical);
-        openConnections.decrementAndGet();
+        releaseReservedSlot();
+    }
+
+    private boolean reserveSlot() throws SQLException {
+        synchronized (stateLock) {
+            if (closed) {
+                throw new SQLException("The connection pool is closed.");
+            }
+            if (openConnections >= maxSize) {
+                return false;
+            }
+            openConnections++;
+            return true;
+        }
+    }
+
+    private void releaseReservedSlot() {
+        synchronized (stateLock) {
+            openConnections--;
+        }
+    }
+
+    private Connection checkout(Connection physical) throws SQLException {
+        synchronized (stateLock) {
+            if (closed) {
+                openConnections--;
+                closeQuietly(physical);
+                throw new SQLException("The connection pool is closed.");
+            }
+            return wrap(physical);
+        }
     }
 
     private boolean isUsable(Connection connection) {

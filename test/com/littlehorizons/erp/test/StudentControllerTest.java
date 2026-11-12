@@ -56,11 +56,12 @@ public final class StudentControllerTest {
                     () -> fixture.controller.remove(12345),
                     "unknown students cannot be removed");
         });
-        suite.add("Removing a stored student succeeds", () -> {
+        suite.add("Retiring a stored student preserves its history", () -> {
             Fixture fixture = new Fixture();
             int id = fixture.controller.register(validStudent("1020304054"), fixture.guardian());
             fixture.controller.remove(id);
-            Assert.equals(null, fixture.controller.findById(id), "the student must be gone");
+            Assert.equals("Retirado", fixture.controller.findById(id).getEnrollmentState(),
+                    "the student should be retained with retired status");
         });
     }
 

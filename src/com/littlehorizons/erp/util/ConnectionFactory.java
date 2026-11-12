@@ -18,7 +18,7 @@ public final class ConnectionFactory implements ConnectionProvider {
 
     private static final String DEFAULT_URL =
             "jdbc:mysql://localhost:3306/erp_little_horizons"
-            + "?sslMode=PREFERRED&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+            + "?sslMode=VERIFY_IDENTITY&serverTimezone=UTC"
             + "&characterEncoding=UTF-8";
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
 
@@ -71,10 +71,6 @@ public final class ConnectionFactory implements ConnectionProvider {
 
     public Connection getConnection() throws SQLException {
         return DriverManager.getConnection(url, user, password);
-    }
-
-    public String getUrl() {
-        return url;
     }
 
     public String getUser() {

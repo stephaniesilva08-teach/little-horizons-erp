@@ -9,7 +9,7 @@
 -- Little Horizons ERP - Esquema de Base de Datos
 -- Sistema de Gestión Educativa
 -- Versión: 2.0 (Corregida y Mejorada)
--- Motor: MySQL 8.0 o superior (REQUERIDO)
+-- Motor: MySQL 8.0.16 o superior (CHECK constraints aplicados)
 -- ============================================
 
 CREATE DATABASE IF NOT EXISTS erp_little_horizons CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -83,8 +83,8 @@ CREATE TABLE estudiante_acudiente (
     es_contacto_emergencia BOOLEAN DEFAULT TRUE COMMENT 'Disponible para emergencias',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id_estudiante, id_acudiente),
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_acudiente) REFERENCES acudientes(id_acudiente) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_acudiente) REFERENCES acudientes(id_acudiente) ON DELETE RESTRICT,
     INDEX idx_estudiante (id_estudiante),
     INDEX idx_acudiente (id_acudiente)
 ) ENGINE=InnoDB COMMENT='Relación entre estudiantes y sus acudientes';
@@ -100,7 +100,7 @@ CREATE TABLE matriculas (
     fecha_retiro DATE,
     observaciones TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
     FOREIGN KEY (id_grado) REFERENCES grados(id_grado),
     UNIQUE KEY matricula_unica (id_estudiante, año_academico),
     INDEX idx_año_grado (año_academico, id_grado),
@@ -156,11 +156,12 @@ CREATE TABLE asignaciones_profesor (
     año_academico INT NOT NULL,
     seccion VARCHAR(10) COMMENT 'Sección o grupo (A, B, C)',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_profesor) REFERENCES profesores(id_profesor) ON DELETE CASCADE,
-    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE CASCADE,
+    FOREIGN KEY (id_profesor) REFERENCES profesores(id_profesor) ON DELETE RESTRICT,
+    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE RESTRICT,
     UNIQUE KEY asignacion_unica (id_profesor, id_materia, año_academico, seccion),
     INDEX idx_profesor_año (id_profesor, año_academico),
-    INDEX idx_materia_año (id_materia, año_academico)
+    INDEX idx_materia_año (id_materia, año_academico),
+    INDEX idx_año_seccion (año_academico, seccion, id_materia, id_profesor)
 ) ENGINE=InnoDB COMMENT='Asignación de profesores a materias por año académico';
 
 -- Horarios de clase por asignación (día y franja horaria)
@@ -171,7 +172,7 @@ CREATE TABLE horarios (
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_asignacion) REFERENCES asignaciones_profesor(id_asignacion) ON DELETE CASCADE,
+    FOREIGN KEY (id_asignacion) REFERENCES asignaciones_profesor(id_asignacion) ON DELETE RESTRICT,
     CHECK (hora_fin > hora_inicio),
     INDEX idx_asignacion (id_asignacion),
     INDEX idx_dia_hora (dia_semana, hora_inicio, hora_fin)
@@ -188,8 +189,8 @@ CREATE TABLE inscripciones_materia (
     fecha_inscripcion DATE NOT NULL,
     estado ENUM('Activa', 'Retirada', 'Completada') DEFAULT 'Activa',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE RESTRICT,
     UNIQUE KEY inscripcion_unica (id_estudiante, id_materia, año_academico, periodo_academico),
     INDEX idx_estudiante_año (id_estudiante, año_academico),
     INDEX idx_materia_periodo (id_materia, periodo_academico)
@@ -208,8 +209,8 @@ CREATE TABLE registros_academicos (
     fecha_registro DATE NOT NULL,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE RESTRICT,
     FOREIGN KEY (id_profesor) REFERENCES profesores(id_profesor),
     CHECK (valor_nota >= 0.0 AND valor_nota <= 5.0),
     UNIQUE KEY registro_unico (id_estudiante, id_materia, año_academico, periodo_academico),
@@ -228,8 +229,8 @@ CREATE TABLE asistencias (
     observaciones TEXT,
     registrado_por INT COMMENT 'ID del profesor que registró la asistencia',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_materia) REFERENCES materias(id_materia) ON DELETE RESTRICT,
     FOREIGN KEY (registrado_por) REFERENCES profesores(id_profesor),
     UNIQUE KEY asistencia_unica (id_estudiante, id_materia, fecha_asistencia),
     INDEX idx_estudiante_fecha (id_estudiante, fecha_asistencia),
@@ -268,8 +269,8 @@ CREATE TABLE membresias_club (
     fecha_retiro DATE,
     motivo_retiro TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_club) REFERENCES clubes(id_club) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_club) REFERENCES clubes(id_club) ON DELETE RESTRICT,
     INDEX idx_estudiante (id_estudiante),
     INDEX idx_club_estado (id_club, estado_membresia),
     UNIQUE KEY membresia_unica (id_estudiante, id_club)
@@ -302,8 +303,8 @@ CREATE TABLE participantes_evento (
     posicion_obtenida VARCHAR(20) COMMENT 'Posición obtenida si hay competencia (1er Lugar, 2do Lugar, 3er Lugar, Participante)',
     observaciones TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_evento) REFERENCES eventos(id_evento) ON DELETE CASCADE,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_evento) REFERENCES eventos(id_evento) ON DELETE RESTRICT,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
     UNIQUE KEY participacion_unica (id_evento, id_estudiante),
     INDEX idx_evento (id_evento),
     INDEX idx_estudiante (id_estudiante)
@@ -337,8 +338,8 @@ CREATE TABLE conceptos_estudiante (
     monto_personalizado DECIMAL(10,2) NOT NULL,
     motivo VARCHAR(150),
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
-    FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto) ON DELETE RESTRICT,
     CHECK (monto_personalizado >= 0),
     UNIQUE KEY concepto_estudiante_unico (id_estudiante, id_concepto)
 ) ENGINE=InnoDB COMMENT='Ajustes de valor de conceptos para estudiantes específicos';
@@ -362,6 +363,7 @@ CREATE TABLE pagos (
     FOREIGN KEY (id_acudiente) REFERENCES acudientes(id_acudiente),
     FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto),
     INDEX idx_estudiante_fecha (id_estudiante, fecha_pago),
+    INDEX idx_pago_cargo (id_estudiante, id_concepto, año_academico, periodo_academico),
     INDEX idx_concepto (id_concepto),
     INDEX idx_fecha (fecha_pago),
     INDEX idx_recibo (numero_recibo)
@@ -383,6 +385,8 @@ CREATE TABLE cargos_estudiante (
     FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto),
     CHECK (monto >= 0),
     INDEX idx_estudiante_estado (id_estudiante, estado),
+    INDEX idx_cargo_saldo (id_estudiante, id_concepto, año_academico,
+                           periodo_academico, estado, fecha_vencimiento),
     INDEX idx_vencimiento (fecha_vencimiento)
 ) ENGINE=InnoDB COMMENT='Cargos u obligaciones de pago por estudiante';
 
@@ -455,8 +459,8 @@ CREATE TABLE prestamos_estudiante (
     observaciones TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_recurso) REFERENCES recursos(id_recurso) ON DELETE CASCADE,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_recurso) REFERENCES recursos(id_recurso) ON DELETE RESTRICT,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
     INDEX idx_recurso_estado (id_recurso, estado_prestamo),
     INDEX idx_estudiante (id_estudiante),
     INDEX idx_estado (estado_prestamo),
@@ -475,8 +479,8 @@ CREATE TABLE prestamos_profesor (
     observaciones TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_recurso) REFERENCES recursos(id_recurso) ON DELETE CASCADE,
-    FOREIGN KEY (id_profesor) REFERENCES profesores(id_profesor) ON DELETE CASCADE,
+    FOREIGN KEY (id_recurso) REFERENCES recursos(id_recurso) ON DELETE RESTRICT,
+    FOREIGN KEY (id_profesor) REFERENCES profesores(id_profesor) ON DELETE RESTRICT,
     INDEX idx_recurso_estado (id_recurso, estado_prestamo),
     INDEX idx_profesor (id_profesor),
     INDEX idx_estado (estado_prestamo),
@@ -1183,8 +1187,8 @@ VALUES ('recibo', 2026, 30)
 ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 30);
 
 INSERT INTO secuencias_financieras (nombre_secuencia, año, ultimo_valor)
-VALUES ('factura', 2026, 0)
-ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 0);
+VALUES ('factura', 2026, 1)
+ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 1);
 
 -- ============================================
 -- VERIFICATION

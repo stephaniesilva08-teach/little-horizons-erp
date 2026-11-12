@@ -189,6 +189,7 @@ public class AcademicController {
 
     public int addSchedule(Schedule schedule) {
         validateSchedule(schedule);
+        rejectScheduleConflict(schedule);
         return assignmentDao.insertSchedule(schedule);
     }
 
@@ -197,6 +198,7 @@ public class AcademicController {
             throw new IllegalArgumentException("Falta el identificador del horario.");
         }
         validateSchedule(schedule);
+        rejectScheduleConflict(schedule);
         assignmentDao.updateSchedule(schedule);
     }
 
@@ -216,8 +218,17 @@ public class AcademicController {
     }
 
     public void updateEnrollment(SubjectEnrollment enrollment) {
+        if (enrollment == null) {
+            throw new IllegalArgumentException("Los datos de la inscripción son obligatorios.");
+        }
         if (enrollment.getIdEnrollment() <= 0) {
             throw new IllegalArgumentException("Falta el identificador de la inscripción.");
+        }
+        if (!Validator.isNotEmpty(enrollment.getSection())) {
+            throw new IllegalArgumentException("La sección es obligatoria.");
+        }
+        if (!Validator.isOneOf(enrollment.getState(), "Activa", "Retirada", "Completada")) {
+            throw new IllegalArgumentException("El estado de la inscripción es inválido.");
         }
         enrollmentDao.update(enrollment);
     }
@@ -297,6 +308,13 @@ public class AcademicController {
             }
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Formato de hora inválido (HH:MM).");
+        }
+    }
+
+    private void rejectScheduleConflict(Schedule schedule) {
+        if (assignmentDao.hasScheduleConflict(schedule)) {
+            throw new IllegalArgumentException(
+                    "El horario se cruza con otra clase del profesor o de la sección.");
         }
     }
 

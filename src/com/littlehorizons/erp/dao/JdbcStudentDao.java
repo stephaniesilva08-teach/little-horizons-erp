@@ -43,18 +43,62 @@ public class JdbcStudentDao implements StudentDao {
                 + "fecha_nacimiento, genero, direccion, telefono, correo_electronico, "
                 + "tipo_sangre, alergias, condiciones_medicas, fecha_ingreso, estado) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql,
-                     Statement.RETURN_GENERATED_KEYS)) {
-            bind(ps, student);
-            ps.executeUpdate();
-            int id = DaoSupport.generatedKey(ps);
-            student.setIdStudent(id);
+        try (Connection connection = connectionProvider.getConnection()) {
+            int id = insert(connection, sql, student);
             LoggerUtil.info("Student created with id " + id);
             return id;
         } catch (SQLException e) {
             LoggerUtil.error("Could not insert student", e);
             throw new DataAccessException("No se pudo registrar el estudiante.", e);
+        }
+    }
+
+    @Override
+    public int insertWithGuardian(Student student, int idParent) {
+        String studentSql = "INSERT INTO estudiantes (tipo_documento, numero_documento, "
+                + "primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, "
+                + "fecha_nacimiento, genero, direccion, telefono, correo_electronico, "
+                + "tipo_sangre, alergias, condiciones_medicas, fecha_ingreso, estado) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String guardianSql = "INSERT INTO estudiante_acudiente (id_estudiante, id_acudiente, "
+                + "es_principal, es_contacto_emergencia) VALUES (?, ?, TRUE, TRUE)";
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int idStudent = insert(connection, studentSql, student);
+                try (PreparedStatement ps = connection.prepareStatement(guardianSql)) {
+                    ps.setInt(1, idStudent);
+                    ps.setInt(2, idParent);
+                    ps.executeUpdate();
+                }
+                connection.commit();
+                LoggerUtil.info("Student created with guardian: " + idStudent);
+                return idStudent;
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            LoggerUtil.error("Could not insert student with guardian", e);
+            throw new DataAccessException(
+                    "No se pudo registrar el estudiante con su acudiente.", e);
+        }
+    }
+
+    private int insert(Connection connection, String sql, Student student)
+            throws SQLException {
+        try (PreparedStatement ps = connection.prepareStatement(sql,
+                Statement.RETURN_GENERATED_KEYS)) {
+            bind(ps, student);
+            ps.executeUpdate();
+            int id = DaoSupport.generatedKey(ps);
+            student.setIdStudent(id);
+            return id;
         }
     }
 

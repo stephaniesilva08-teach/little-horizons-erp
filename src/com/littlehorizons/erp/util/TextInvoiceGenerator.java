@@ -6,6 +6,7 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -52,6 +53,7 @@ public final class TextInvoiceGenerator {
         try {
             Path directory = Path.of(INVOICE_DIR);
             Files.createDirectories(directory);
+            restrictDirectoryPermissions(directory);
 
             boolean taxable = !EXEMPT_CODES.contains(conceptCode.toUpperCase());
             BigDecimal total = amountPaid.setScale(2, RoundingMode.HALF_UP);
@@ -76,7 +78,8 @@ public final class TextInvoiceGenerator {
             String content = buildContent(invoiceNumber, studentName, guardianName,
                     guardianDocument, guardianAddress, conceptCode, conceptName, quantity,
                     unitPrice, subtotal, vat, total, cufe, issueDate);
-            Files.writeString(fullPath, content, StandardCharsets.UTF_8);
+            Files.writeString(fullPath, content, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
             restrictPermissions(fullPath);
 
             LoggerUtil.info("Invoice generated: " + fullPath.toAbsolutePath());
@@ -113,16 +116,17 @@ public final class TextInvoiceGenerator {
         text.append("Fecha de emisión: ").append(issueDate).append('\n');
         text.append("----------------------------------------------------------\n");
         text.append("INFORMACIÓN DEL CLIENTE\n");
-        text.append("Acudiente responsable: ").append(guardianName).append('\n');
-        text.append("Documento: ").append(guardianDocument).append('\n');
-        text.append("Dirección: ").append(guardianAddress).append('\n');
-        text.append("Estudiante: ").append(studentName).append('\n');
+        text.append("Acudiente responsable: ").append(singleLine(guardianName)).append('\n');
+        text.append("Documento: ").append(singleLine(guardianDocument)).append('\n');
+        text.append("Dirección: ").append(singleLine(guardianAddress)).append('\n');
+        text.append("Estudiante: ").append(singleLine(studentName)).append('\n');
         text.append("----------------------------------------------------------\n");
         text.append("DETALLE\n");
         text.append(String.format("%-30s %8s %15s %15s%n",
                 "Descripción", "Cant.", "Valor unit.", "Subtotal"));
         text.append(String.format("%-30s %8d %15s %15s%n",
-                conceptName, quantity, formatCurrency(unitPrice), formatCurrency(subtotal)));
+                singleLine(conceptName), quantity, formatCurrency(unitPrice),
+                formatCurrency(subtotal)));
         text.append("----------------------------------------------------------\n");
         text.append(String.format("%-55s %15s%n", "Subtotal:", formatCurrency(subtotal)));
         text.append(String.format("%-55s %15s%n", "IVA (19%):", formatCurrency(vat)));
@@ -164,11 +168,28 @@ public final class TextInvoiceGenerator {
         return value.replaceAll("[^A-Za-z0-9_-]", "_");
     }
 
+    private static String singleLine(String value) {
+        if (value == null) {
+            return "";
+        }
+        String clean = value.replaceAll("[\\p{Cc}\\p{Cf}]", " ").trim();
+        return clean.length() > 120 ? clean.substring(0, 120) : clean;
+    }
+
     /** Invoice files contain customer data, so only the owner may read them. */
     private static void restrictPermissions(Path file) {
         try {
             Files.setPosixFilePermissions(file,
                     PosixFilePermissions.fromString("rw-------"));
+        } catch (IOException | UnsupportedOperationException ignored) {
+            // Non-POSIX file systems do not support this restriction.
+        }
+    }
+
+    private static void restrictDirectoryPermissions(Path directory) {
+        try {
+            Files.setPosixFilePermissions(directory,
+                    PosixFilePermissions.fromString("rwx------"));
         } catch (IOException | UnsupportedOperationException ignored) {
             // Non-POSIX file systems do not support this restriction.
         }

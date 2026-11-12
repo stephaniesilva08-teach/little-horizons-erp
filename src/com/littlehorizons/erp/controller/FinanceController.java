@@ -62,10 +62,27 @@ public class FinanceController {
     }
 
     public void updateConcept(PaymentConcept concept) {
-        if (concept.getIdConcept() <= 0) {
+        if (concept == null || concept.getIdConcept() <= 0) {
             throw new IllegalArgumentException("Falta el identificador del concepto.");
         }
+        validateConcept(concept);
         financeDao.updateConcept(concept);
+    }
+
+    private void validateConcept(PaymentConcept concept) {
+        if (concept == null) {
+            throw new IllegalArgumentException("Los datos del concepto son obligatorios.");
+        }
+        if (!Validator.isNotEmpty(concept.getConceptCode())) {
+            throw new IllegalArgumentException("El código del concepto es obligatorio.");
+        }
+        if (!Validator.isValidName(concept.getName())) {
+            throw new IllegalArgumentException("El nombre del concepto es inválido.");
+        }
+        if (concept.getBaseAmount() == null
+                || concept.getBaseAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El monto base no puede ser negativo.");
+        }
     }
 
     public void removeConcept(int idConcept) {

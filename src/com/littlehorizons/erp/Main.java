@@ -31,12 +31,12 @@ public class Main {
             LoggerUtil.info("Application started");
             new MainMenu().show();
         } catch (SQLException e) {
-            LoggerUtil.error("Could not connect to the database", e);
+            LoggerUtil.error("Could not connect to the database; SQLState="
+                    + e.getSQLState() + ", vendorCode=" + e.getErrorCode(), null);
             System.err.println("\nNo se pudo conectar a la base de datos.");
-            System.err.println("URL: " + ConnectionFactory.getInstance().getUrl());
             System.err.println("Verifique que MySQL esté activo y que los datos de");
             System.err.println("conexión (ERP_DB_URL, ERP_DB_USER, ERP_DB_PASSWORD)");
-            System.err.println("sean correctos. Detalle: " + e.getMessage());
+            System.err.println("sean correctos y que el certificado TLS sea confiable.");
             System.exit(1);
         } finally {
             Database.shutdown();

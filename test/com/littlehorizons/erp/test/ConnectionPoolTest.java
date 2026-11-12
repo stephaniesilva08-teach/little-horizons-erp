@@ -11,6 +11,10 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Tests the pool lifecycle: reuse, bounds, timeouts and shutdown.
@@ -79,6 +83,38 @@ public final class ConnectionPoolTest {
             second.close();
             pool.close();
         });
+        suite.add("Concurrent acquisition keeps pool capacity and accounting", () -> {
+            FakeProvider provider = new FakeProvider();
+            ConnectionPool pool = new ConnectionPool(provider, 3, Duration.ofSeconds(3));
+            int workers = 24;
+            CountDownLatch ready = new CountDownLatch(workers);
+            CountDownLatch start = new CountDownLatch(1);
+            ExecutorService executor = Executors.newFixedThreadPool(workers);
+            List<Future<?>> futures = new ArrayList<>();
+            for (int i = 0; i < workers; i++) {
+                futures.add(executor.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    try (Connection ignored = pool.getConnection()) {
+                        Thread.sleep(5);
+                    }
+                    return null;
+                }));
+            }
+            ready.await();
+            start.countDown();
+            for (Future<?> future : futures) {
+                future.get();
+            }
+            executor.shutdownNow();
+            Assert.isTrue(pool.openConnections() <= 3,
+                    "the open count must never exceed the configured capacity");
+            Assert.equals(provider.created, pool.openConnections(),
+                    "the open count must match physical connections after all releases");
+            Assert.equals(pool.openConnections(), pool.idleConnections(),
+                    "every connection should be idle after all workers finish");
+            pool.close();
+        });
     }
 
     private static final class FakeProvider implements ConnectionProvider {
@@ -87,7 +123,7 @@ public final class ConnectionPoolTest {
         private int created;
 
         @Override
-        public Connection getConnection() {
+        public synchronized Connection getConnection() {
             created++;
             FakeConnection fake = new FakeConnection();
             connections.add(fake);

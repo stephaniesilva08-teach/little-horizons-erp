@@ -78,20 +78,55 @@ public class JdbcClubDao implements ClubDao {
         String sql = "UPDATE clubes SET nombre_club = ?, descripcion = ?, "
                 + "id_profesor_supervisor = ?, capacidad_maxima = ?, horario_reunion = ?, "
                 + "esta_activo = ? WHERE id_club = ?";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, club.getName());
-            ps.setString(2, club.getDescription());
-            if (club.getIdTeacher() > 0) {
-                ps.setInt(3, club.getIdTeacher());
-            } else {
-                ps.setNull(3, java.sql.Types.INTEGER);
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement lock = connection.prepareStatement(
+                        "SELECT id_club FROM clubes WHERE id_club = ? FOR UPDATE")) {
+                    lock.setInt(1, club.getIdClub());
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new IllegalArgumentException("El club no existe.");
+                        }
+                    }
+                }
+                int activeMembers;
+                try (PreparedStatement count = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM membresias_club "
+                        + "WHERE id_club = ? AND estado_membresia = 'Activa'")) {
+                    count.setInt(1, club.getIdClub());
+                    try (ResultSet rs = count.executeQuery()) {
+                        activeMembers = rs.next() ? rs.getInt(1) : 0;
+                    }
+                }
+                if (activeMembers > club.getMaxCapacity()) {
+                    throw new IllegalArgumentException("La nueva capacidad no puede ser menor "
+                            + "que los " + activeMembers + " miembros activos.");
+                }
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setString(1, club.getName());
+                    ps.setString(2, club.getDescription());
+                    if (club.getIdTeacher() > 0) {
+                        ps.setInt(3, club.getIdTeacher());
+                    } else {
+                        ps.setNull(3, java.sql.Types.INTEGER);
+                    }
+                    ps.setInt(4, club.getMaxCapacity());
+                    ps.setString(5, club.getSchedule());
+                    ps.setBoolean(6, club.isActive());
+                    ps.setInt(7, club.getIdClub());
+                    ps.executeUpdate();
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
             }
-            ps.setInt(4, club.getMaxCapacity());
-            ps.setString(5, club.getSchedule());
-            ps.setBoolean(6, club.isActive());
-            ps.setInt(7, club.getIdClub());
-            ps.executeUpdate();
         } catch (SQLException e) {
             LoggerUtil.error("Could not update club", e);
             throw new DataAccessException("No se pudo actualizar el club.", e);
@@ -134,19 +169,59 @@ public class JdbcClubDao implements ClubDao {
     }
 
     public int insertMembership(Membership membership) {
-        String sql = "INSERT INTO membresias_club (id_estudiante, id_club, "
+        String capacitySql = "SELECT capacidad_maxima, esta_activo FROM clubes "
+                + "WHERE id_club = ? FOR UPDATE";
+        String countSql = "SELECT COUNT(*) FROM membresias_club "
+                + "WHERE id_club = ? AND estado_membresia = 'Activa'";
+        String insertSql = "INSERT INTO membresias_club (id_estudiante, id_club, "
                 + "fecha_ingreso, estado_membresia) VALUES (?, ?, ?, ?)";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql,
-                     Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, membership.getIdStudent());
-            ps.setInt(2, membership.getIdClub());
-            DaoSupport.setDate(ps, 3, membership.getEntryDate());
-            ps.setString(4, membership.getState());
-            ps.executeUpdate();
-            int id = DaoSupport.generatedKey(ps);
-            membership.setIdMembership(id);
-            return id;
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int capacity;
+                try (PreparedStatement ps = connection.prepareStatement(capacitySql)) {
+                    ps.setInt(1, membership.getIdClub());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new IllegalArgumentException("El club no existe.");
+                        }
+                        if (!rs.getBoolean("esta_activo")) {
+                            throw new IllegalArgumentException("El club no está activo.");
+                        }
+                        capacity = rs.getInt("capacidad_maxima");
+                    }
+                }
+                try (PreparedStatement ps = connection.prepareStatement(countSql)) {
+                    ps.setInt(1, membership.getIdClub());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) >= capacity) {
+                            throw new IllegalArgumentException(
+                                    "El club alcanzó su capacidad máxima (" + capacity + ").");
+                        }
+                    }
+                }
+                int id;
+                try (PreparedStatement ps = connection.prepareStatement(insertSql,
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, membership.getIdStudent());
+                    ps.setInt(2, membership.getIdClub());
+                    DaoSupport.setDate(ps, 3, membership.getEntryDate());
+                    ps.setString(4, membership.getState());
+                    ps.executeUpdate();
+                    id = DaoSupport.generatedKey(ps);
+                }
+                connection.commit();
+                membership.setIdMembership(id);
+                return id;
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         } catch (SQLException e) {
             LoggerUtil.error("Could not insert membership", e);
             throw new DataAccessException("No se pudo registrar la membresía.", e);

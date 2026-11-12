@@ -130,17 +130,42 @@ public class JdbcResourceDao implements ResourceDao {
         String sql = "UPDATE recursos SET codigo_recurso = ?, nombre_recurso = ?, "
                 + "id_categoria = ?, descripcion = ?, fecha_adquisicion = ?, "
                 + "ubicacion_fisica = ?, estado_recurso = ? WHERE id_recurso = ?";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, resource.getResourceCode());
-            ps.setString(2, resource.getName());
-            ps.setInt(3, resource.getIdCategory());
-            ps.setString(4, resource.getDescription());
-            DaoSupport.setDate(ps, 5, resource.getAcquisitionDate());
-            ps.setString(6, resource.getLocation());
-            ps.setString(7, resource.getState());
-            ps.setInt(8, resource.getIdResource());
-            ps.executeUpdate();
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                lockResource(connection, resource.getIdResource());
+                int activeLoans = countActiveLoans(connection, resource.getIdResource());
+                if (activeLoans > 0 && !"Prestado".equalsIgnoreCase(resource.getState())) {
+                    throw new IllegalArgumentException(
+                            "No puede cambiar el estado mientras el recurso tiene un préstamo activo.");
+                }
+                if (activeLoans == 0 && "Prestado".equalsIgnoreCase(resource.getState())) {
+                    throw new IllegalArgumentException(
+                            "Un recurso solo puede marcarse como prestado al registrar un préstamo.");
+                }
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setString(1, resource.getResourceCode());
+                    ps.setString(2, resource.getName());
+                    ps.setInt(3, resource.getIdCategory());
+                    ps.setString(4, resource.getDescription());
+                    DaoSupport.setDate(ps, 5, resource.getAcquisitionDate());
+                    ps.setString(6, resource.getLocation());
+                    ps.setString(7, resource.getState());
+                    ps.setInt(8, resource.getIdResource());
+                    if (ps.executeUpdate() != 1) {
+                        throw new IllegalArgumentException("El recurso no existe.");
+                    }
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         } catch (SQLException e) {
             LoggerUtil.error("Could not update resource", e);
             throw new DataAccessException("No se pudo actualizar el recurso.", e);
@@ -273,6 +298,10 @@ public class JdbcResourceDao implements ResourceDao {
         try (Connection connection = connectionProvider.getConnection()) {
             connection.setAutoCommit(false);
             try {
+                String resourceState = lockResource(connection, loan.getIdResource());
+                if (!"Disponible".equalsIgnoreCase(resourceState)) {
+                    throw new IllegalArgumentException("El recurso ya no está disponible.");
+                }
                 int id;
                 int idResource;
                 try (PreparedStatement ps = connection.prepareStatement(sql,
@@ -291,8 +320,11 @@ public class JdbcResourceDao implements ResourceDao {
                 connection.commit();
                 loan.setIdLoan(id);
                 return id;
-            } catch (SQLException e) {
+            } catch (SQLException | RuntimeException e) {
                 connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
                 throw e;
             } finally {
                 connection.setAutoCommit(true);
@@ -307,14 +339,17 @@ public class JdbcResourceDao implements ResourceDao {
         if (!LOAN_TABLES.contains(table)) {
             throw new IllegalArgumentException("Tipo de préstamo no válido.");
         }
-        String selectSql = "SELECT id_recurso FROM " + table + " WHERE id_prestamo = ?";
+        String resourceSql = "SELECT id_recurso FROM " + table + " WHERE id_prestamo = ?";
+        String stateSql = "SELECT estado_prestamo FROM " + table
+                + " WHERE id_prestamo = ? FOR UPDATE";
         String updateSql = "UPDATE " + table + " SET fecha_devolucion_real = ?, "
-                + "estado_prestamo = 'Devuelto' WHERE id_prestamo = ?";
+                + "estado_prestamo = 'Devuelto' WHERE id_prestamo = ? "
+                + "AND estado_prestamo IN ('Activo', 'Vencido')";
         try (Connection connection = connectionProvider.getConnection()) {
             connection.setAutoCommit(false);
             try {
                 int idResource;
-                try (PreparedStatement ps = connection.prepareStatement(selectSql)) {
+                try (PreparedStatement ps = connection.prepareStatement(resourceSql)) {
                     ps.setInt(1, idLoan);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
@@ -324,12 +359,35 @@ public class JdbcResourceDao implements ResourceDao {
                         idResource = rs.getInt("id_recurso");
                     }
                 }
+                lockResource(connection, idResource);
+                try (PreparedStatement ps = connection.prepareStatement(stateSql)) {
+                    ps.setInt(1, idLoan);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new DataAccessException(
+                                    "No existe el préstamo indicado.", null);
+                        }
+                        String state = rs.getString("estado_prestamo");
+                        if (!"Activo".equalsIgnoreCase(state)
+                                && !"Vencido".equalsIgnoreCase(state)) {
+                            throw new IllegalArgumentException(
+                                    "El préstamo ya fue devuelto.");
+                        }
+                    }
+                }
                 try (PreparedStatement ps = connection.prepareStatement(updateSql)) {
                     ps.setDate(1, java.sql.Date.valueOf(LocalDate.now()));
                     ps.setInt(2, idLoan);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) {
+                        throw new IllegalArgumentException(
+                                "El préstamo ya no está activo.");
+                    }
                 }
-                updateResourceState(connection, idResource, "Disponible");
+                if (countActiveLoans(connection, idResource) == 0) {
+                    updateResourceState(connection, idResource, "Disponible");
+                } else {
+                    updateResourceState(connection, idResource, "Prestado");
+                }
                 connection.commit();
                 LoggerUtil.info("Loan returned: " + table + " #" + idLoan);
             } catch (SQLException | RuntimeException e) {
@@ -350,7 +408,36 @@ public class JdbcResourceDao implements ResourceDao {
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, state);
             ps.setInt(2, idResource);
-            ps.executeUpdate();
+            if (ps.executeUpdate() != 1) {
+                throw new SQLException("The resource no longer exists: " + idResource);
+            }
+        }
+    }
+
+    private String lockResource(Connection connection, int idResource) throws SQLException {
+        String sql = "SELECT estado_recurso FROM recursos WHERE id_recurso = ? FOR UPDATE";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idResource);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException("El recurso no existe.");
+                }
+                return rs.getString("estado_recurso");
+            }
+        }
+    }
+
+    private int countActiveLoans(Connection connection, int idResource) throws SQLException {
+        String sql = "SELECT (SELECT COUNT(*) FROM prestamos_estudiante "
+                + "WHERE id_recurso = ? AND estado_prestamo IN ('Activo','Vencido')) "
+                + "+ (SELECT COUNT(*) FROM prestamos_profesor "
+                + "WHERE id_recurso = ? AND estado_prestamo IN ('Activo','Vencido'))";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idResource);
+            ps.setInt(2, idResource);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
         }
     }
 

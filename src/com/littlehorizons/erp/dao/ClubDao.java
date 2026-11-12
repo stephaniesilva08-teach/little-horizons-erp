@@ -23,6 +23,7 @@ public interface ClubDao {
 
     int insertMembership(Membership membership);
 
+
     void updateMembership(Membership membership);
 
     boolean deleteMembership(int idMembership);

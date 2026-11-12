@@ -27,6 +27,8 @@ public interface AssignmentDao {
 
     void updateSchedule(Schedule schedule);
 
+    boolean hasScheduleConflict(Schedule schedule);
+
     boolean deleteSchedule(int idSchedule);
 
     List<Schedule> findSchedulesByAssignment(int idAssignment);

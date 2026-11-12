@@ -10,6 +10,17 @@ public interface StudentDao {
 
     int insert(Student student);
 
+    default int insertWithGuardian(Student student, int idParent) {
+        int idStudent = insert(student);
+        try {
+            assignGuardian(idStudent, idParent, true, true);
+            return idStudent;
+        } catch (RuntimeException e) {
+            delete(idStudent);
+            throw e;
+        }
+    }
+
     void update(Student student);
 
     boolean delete(int idStudent);

@@ -68,7 +68,7 @@ la institución.
 |---|---|
 | Java | 17 o superior (probado con OpenJDK 21) |
 | IDE | Cualquiera compatible con Java (IntelliJ IDEA, VS Code, NetBeans, Eclipse) |
-| MySQL | 8.0 o superior (probado con MySQL 8.0.46) |
+| MySQL | 8.0.16 o superior (probado con MySQL 8.0.46; esta versión aplica `CHECK`) |
 | MySQL Connector/J | 8.4.0 |
 | Maven (opcional) | 3.9+ para compilar y empaquetar con `pom.xml` |
 | Interfaz | Consola de texto (`System.console`/`Scanner`) |
@@ -82,8 +82,8 @@ de consola dirigidos al usuario y los nombres de columnas SQL están en español
 ## 5. Requerimientos Previos
 
 - **JDK 17 o superior** instalado y disponible en `PATH` (`java -version`, `javac -version`).
-- **MySQL Server 8.0 o superior** en ejecución. Es un requisito obligatorio porque el
-  esquema utiliza `CHECK`, `ENUM`, `JSON`/`TIMESTAMP` y otras características de MySQL 8.
+- **MySQL Server 8.0.16 o superior** en ejecución. El esquema utiliza `CHECK`; MySQL
+  empezó a aplicar esas restricciones desde la versión 8.0.16.
 - Usuario de MySQL con permisos para crear la base de datos `erp_little_horizons`.
 - Terminal o consola (Bash, PowerShell, CMD).
 - Opcional: Maven 3.9+ si se desea usar `pom.xml`.
@@ -119,7 +119,7 @@ siguientes variables de entorno:
 |---|---|---|
 | `ERP_DB_USER` | Sí | Usuario de MySQL. |
 | `ERP_DB_PASSWORD` | Sí | Contraseña del usuario. |
-| `ERP_DB_URL` | No | URL JDBC. Por defecto apunta a `localhost:3306/erp_little_horizons` con `sslMode=PREFERRED`. |
+| `ERP_DB_URL` | No | URL JDBC. Por defecto apunta a `localhost:3306/erp_little_horizons` con `sslMode=VERIFY_IDENTITY`. |
 
 Si falta `ERP_DB_USER` o `ERP_DB_PASSWORD`, la aplicación muestra un mensaje claro y
 termina con código de salida 1.
@@ -128,7 +128,7 @@ Si el usuario no existe, se puede crear uno dedicado con:
 
 ```sql
 CREATE USER IF NOT EXISTS 'erp_user'@'localhost' IDENTIFIED BY 'una_clave_segura';
-GRANT ALL PRIVILEGES ON erp_little_horizons.* TO 'erp_user'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON erp_little_horizons.* TO 'erp_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -138,7 +138,9 @@ Configurar en Linux/macOS:
 export ERP_DB_USER='erp_user'
 export ERP_DB_PASSWORD='una_clave_segura'
 # Opcional:
-# export ERP_DB_URL='jdbc:mysql://localhost:3306/erp_little_horizons?sslMode=PREFERRED&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8'
+# Para conexiones remotas, configure un certificado TLS confiable cuyo nombre coincida
+# con el host de la URL. Solo para MySQL local de desarrollo sin TLS, puede establecer:
+# export ERP_DB_URL='jdbc:mysql://localhost:3306/erp_little_horizons?sslMode=DISABLED&serverTimezone=UTC&characterEncoding=UTF-8'
 ```
 
 En Windows CMD:
@@ -148,8 +150,10 @@ set ERP_DB_USER=erp_user
 set ERP_DB_PASSWORD=una_clave_segura
 ```
 
-Para producción se recomienda `sslMode=VERIFY_IDENTITY` y un usuario con permisos
-mínimos sobre la base de datos.
+La conexión exige TLS y valida la identidad del servidor por defecto. No use
+`sslMode=DISABLED` en redes compartidas o conexiones remotas. El usuario de aplicación
+solo necesita permisos `SELECT`, `INSERT`, `UPDATE` y `DELETE` dentro de esta base.
+El script DDL debe ejecutarse con una cuenta administrativa antes de configurar ese usuario.
 
 ### 6.3. Instalación del driver JDBC
 
@@ -304,10 +308,10 @@ View → Controller → DAO → MySQL
 - **S — Single Responsibility:** cada clase tiene una responsabilidad. `StudentDao` solo
   accede a datos; `StudentController` solo valida y aplica reglas; `StudentView` solo
   interactúa con el usuario.
-- **O — Open/Closed:** se pueden agregar nuevos reportes o DAOs sin modificar los
-  existentes; los records de reporte permiten nuevas consultas sin romper contratos.
-- **L — Liskov Substitution:** los modelos son sustituibles por sus abstracciones y los
-  records de reporte son inmutables y consistentes.
+- **O — Open/Closed:** los controladores reciben contratos DAO; se pueden añadir
+  implementaciones de persistencia compatibles sin cambiar las reglas del controlador.
+- **L — Liskov Substitution:** `JdbcStudentDao` y `InMemoryStudentDao` implementan
+  `StudentDao` y se pueden intercambiar en `StudentController`, como hace la suite de pruebas.
 - **I — Interface Segregation:** cada DAO expone una interfaz con las operaciones de su
   módulo (`StudentDao`, `FinanceDao`, …); los controladores dependen solo de esos
   contratos y no de detalles JDBC.
@@ -327,12 +331,11 @@ View → Controller → DAO → MySQL
   de entregarlas y las devuelve al pool al cerrarlas.
 - **Singleton:** `ConnectionFactory` mantiene una única configuración de conexión y
   `Database` una única instancia del pool.
-- **Factory / utilidades estáticas:** `TextInvoiceGenerator.generate(...)` encapsula la
-  creación de facturas y devuelve un `GeneratedInvoice` inmutable.
+- **Generador estático:** `TextInvoiceGenerator.generate(...)` centraliza la creación
+  del archivo de factura y devuelve un `GeneratedInvoice` inmutable.
 - **DTO con `record`:** reportes y proyecciones (`CourseAverage`, `Debtor`,
   `AttendanceSummary`, etc.) usan records de Java 17.
-- **Template Method implícito:** los DAO comparten `DaoSupport` para mapeo de fechas,
-  nulos y llaves generadas.
+- `DaoSupport` concentra utilidades compartidas para mapear fechas, nulos y llaves generadas.
 
 ### 9.3. Buenas prácticas aplicadas
 
@@ -350,7 +353,8 @@ View → Controller → DAO → MySQL
 
 ### 10.1. Estudiantes y acudientes
 
-- Registro, búsqueda por documento o nombre, actualización y eliminación.
+- Registro, búsqueda por documento o nombre, actualización y retiro lógico. El retiro
+  conserva notas, asistencia, matrículas, préstamos y demás historial del estudiante.
 - El registro exige un acudiente existente y lo asocia como principal y contacto de
   emergencia; así ningún estudiante queda sin acudiente.
 - Datos personales, contacto, tipo de sangre, alergias y condiciones médicas.
@@ -618,10 +622,11 @@ Además del script base se agregaron los siguientes elementos, todos documentado
 - Restricciones `CHECK` adicionales para montos, notas y años académicos.
 - Tabla `secuencias_financieras` para generar consecutivos de recibos y facturas de
   forma atómica y segura ante concurrencia.
-- `ON DELETE RESTRICT` en `pagos`, `cargos_estudiante` y `facturas` para preservar el
-  historial financiero; un estudiante con pagos o cargos no puede eliminarse
-  físicamente.
+- `ON DELETE RESTRICT` en relaciones financieras, académicas y de préstamos para
+  preservar registros históricos y evitar dejar estudiantes sin acudiente.
 - Numeración de recibos unificada a cinco dígitos (`REC-2026-00001`) para que coincida
   con el formato de las facturas (`FAC-2026-00001`).
 - La tabla `facturas` permanece vacía en el script; las facturas se generan desde la
   aplicación para mantener la trazabilidad con cada pago real.
+- El retiro de estudiantes conserva el historial; las claves foráneas impiden borrar
+  físicamente estudiantes, acudientes o recursos que tengan registros relacionados.

@@ -39,14 +39,7 @@ public class StudentController {
         if (studentDao.findByDocument(student.getDocumentNumber()) != null) {
             throw new IllegalArgumentException("Ya existe un estudiante con ese documento.");
         }
-        int idStudent = studentDao.insert(student);
-        try {
-            studentDao.assignGuardian(idStudent, idParent, true, true);
-        } catch (RuntimeException e) {
-            studentDao.delete(idStudent);
-            throw e;
-        }
-        return idStudent;
+        return studentDao.insertWithGuardian(student, idParent);
     }
 
     public void update(Student student) {
@@ -63,9 +56,15 @@ public class StudentController {
     }
 
     public void remove(int idStudent) {
-        if (!studentDao.delete(idStudent)) {
-            throw new IllegalArgumentException("No se encontró el estudiante a eliminar.");
+        Student student = studentDao.findById(idStudent);
+        if (student == null) {
+            throw new IllegalArgumentException("No se encontró el estudiante.");
         }
+        if ("Graduado".equalsIgnoreCase(student.getEnrollmentState())) {
+            throw new IllegalArgumentException("No se puede retirar a un estudiante graduado.");
+        }
+        student.setEnrollmentState("Retirado");
+        studentDao.update(student);
     }
 
     public Student findById(int idStudent) {
