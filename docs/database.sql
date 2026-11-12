@@ -359,7 +359,7 @@ CREATE TABLE pagos (
     periodo_academico ENUM('I', 'II', 'III', 'IV', 'Anual') COMMENT 'Período al que aplica el pago',
     notas TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
     FOREIGN KEY (id_acudiente) REFERENCES acudientes(id_acudiente),
     FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto),
     INDEX idx_estudiante_fecha (id_estudiante, fecha_pago),
@@ -380,7 +380,7 @@ CREATE TABLE cargos_estudiante (
     estado ENUM('Pendiente','Pagado','Anulado') DEFAULT 'Pendiente',
     observaciones TEXT,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE CASCADE,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes(id_estudiante) ON DELETE RESTRICT,
     FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto),
     CHECK (monto >= 0),
     INDEX idx_estudiante_estado (id_estudiante, estado),
@@ -397,12 +397,21 @@ CREATE TABLE facturas (
     nombre_archivo_txt VARCHAR(255) COMMENT 'Nombre del archivo TXT generado',
     ruta_archivo VARCHAR(500) COMMENT 'Ruta completa donde se guardó el archivo TXT',
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_pago) REFERENCES pagos(id_pago) ON DELETE CASCADE,
+    FOREIGN KEY (id_pago) REFERENCES pagos(id_pago) ON DELETE RESTRICT,
     UNIQUE KEY factura_pago_unica (id_pago),
     INDEX idx_numero_factura (numero_factura),
     INDEX idx_fecha_emision (fecha_emision),
     INDEX idx_pago (id_pago)
 ) ENGINE=InnoDB COMMENT='Registro de facturas electrónicas generadas';
+
+-- Secuencias consecutivas por año para recibos y facturas
+CREATE TABLE secuencias_financieras (
+    nombre_secuencia VARCHAR(20) NOT NULL COMMENT 'recibo o factura',
+    año INT NOT NULL,
+    ultimo_valor INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (nombre_secuencia, año),
+    CHECK (ultimo_valor >= 0)
+) ENGINE=InnoDB COMMENT='Consecutivos seguros para recibos y facturas';
 
 -- ============================================
 -- 5. MÓDULO DE GESTIÓN DE RECURSOS
@@ -1082,36 +1091,36 @@ INSERT INTO cargos_estudiante (id_cargo, id_estudiante, id_concepto, año_academ
 (30, 30, 2, 2026, 'I', 315000, '2026-10-15', 'Pendiente', 'Cargo generado automáticamente');
 
 INSERT INTO pagos (id_pago, id_estudiante, id_acudiente, id_concepto, monto_pagado, fecha_pago, metodo_pago, numero_recibo, año_academico, periodo_academico, notas) VALUES
-(1, 1, 1, 1, 300000, '2026-10-02', 'Efectivo', 'REC-2026-0001', 2026, 'Anual', 'Pago registrado en caja'),
-(2, 2, 2, 2, 244999, '2026-10-03', 'Transferencia', 'REC-2026-0002', 2026, 'I', 'Pago registrado en caja'),
-(3, 3, 3, 3, 200000, '2026-10-04', 'Tarjeta Débito', 'REC-2026-0003', 2026, 'I', 'Pago registrado en caja'),
-(4, 4, 4, 4, 135000, '2026-10-05', 'Tarjeta Crédito', 'REC-2026-0004', 2026, 'I', 'Pago registrado en caja'),
-(5, 5, 5, 5, 120000, '2026-10-06', 'Cheque', 'REC-2026-0005', 2026, 'I', 'Pago registrado en caja'),
-(6, 6, 6, 6, 55000, '2026-10-07', 'Efectivo', 'REC-2026-0006', 2026, 'I', 'Pago registrado en caja'),
-(7, 7, 7, 7, 9000, '2026-10-08', 'Transferencia', 'REC-2026-0007', 2026, 'I', 'Pago registrado en caja'),
-(8, 8, 8, 1, 350000, '2026-10-09', 'Tarjeta Débito', 'REC-2026-0008', 2026, 'Anual', 'Pago registrado en caja'),
-(9, 9, 9, 2, 280000, '2026-10-10', 'Tarjeta Crédito', 'REC-2026-0009', 2026, 'I', 'Pago registrado en caja'),
-(10, 10, 10, 3, 225000, '2026-10-11', 'Cheque', 'REC-2026-0010', 2026, 'I', 'Pago registrado en caja'),
-(11, 11, 11, 4, 150000, '2026-10-12', 'Efectivo', 'REC-2026-0011', 2026, 'I', 'Pago registrado en caja'),
-(12, 12, 12, 5, 132000, '2026-10-13', 'Transferencia', 'REC-2026-0012', 2026, 'I', 'Pago registrado en caja'),
-(13, 13, 13, 6, 30000, '2026-10-14', 'Tarjeta Débito', 'REC-2026-0013', 2026, 'I', 'Pago registrado en caja'),
-(14, 14, 14, 7, 10500, '2026-10-15', 'Tarjeta Crédito', 'REC-2026-0014', 2026, 'I', 'Pago registrado en caja'),
-(15, 15, 15, 1, 400000, '2026-10-16', 'Cheque', 'REC-2026-0015', 2026, 'Anual', 'Pago registrado en caja'),
-(16, 16, 16, 2, 315000, '2026-10-17', 'Efectivo', 'REC-2026-0016', 2026, 'I', 'Pago registrado en caja'),
-(17, 17, 17, 3, 250000, '2026-10-18', 'Transferencia', 'REC-2026-0017', 2026, 'I', 'Pago registrado en caja'),
-(18, 18, 18, 4, 165000, '2026-10-19', 'Tarjeta Débito', 'REC-2026-0018', 2026, 'I', 'Pago registrado en caja'),
-(19, 19, 19, 5, 72000, '2026-10-20', 'Tarjeta Crédito', 'REC-2026-0019', 2026, 'I', 'Pago registrado en caja'),
-(20, 20, 20, 6, 35000, '2026-10-21', 'Cheque', 'REC-2026-0020', 2026, 'I', 'Pago registrado en caja'),
-(21, 21, 21, 7, 12000, '2026-10-22', 'Efectivo', 'REC-2026-0021', 2026, 'I', 'Pago registrado en caja'),
-(22, 22, 22, 1, 450000, '2026-10-23', 'Transferencia', 'REC-2026-0022', 2026, 'Anual', 'Pago registrado en caja'),
-(23, 23, 23, 2, 315000, '2026-10-24', 'Tarjeta Débito', 'REC-2026-0023', 2026, 'I', 'Pago registrado en caja'),
-(24, 24, 24, 3, 275000, '2026-10-25', 'Tarjeta Crédito', 'REC-2026-0024', 2026, 'I', 'Pago registrado en caja'),
-(25, 25, 25, 4, 90000, '2026-10-26', 'Cheque', 'REC-2026-0025', 2026, 'I', 'Pago registrado en caja'),
-(26, 26, 26, 5, 84000, '2026-10-27', 'Efectivo', 'REC-2026-0026', 2026, 'I', 'Pago registrado en caja'),
-(27, 27, 27, 6, 40000, '2026-10-28', 'Transferencia', 'REC-2026-0027', 2026, 'I', 'Pago registrado en caja'),
-(28, 28, 28, 7, 13500, '2026-10-01', 'Tarjeta Débito', 'REC-2026-0028', 2026, 'I', 'Pago registrado en caja'),
-(29, 29, 29, 1, 500000, '2026-10-02', 'Tarjeta Crédito', 'REC-2026-0029', 2026, 'Anual', 'Pago registrado en caja'),
-(30, 30, 30, 2, 346500, '2026-10-03', 'Cheque', 'REC-2026-0030', 2026, 'I', 'Pago registrado en caja');
+(1, 1, 1, 1, 300000, '2026-10-02', 'Efectivo', 'REC-2026-00001', 2026, 'Anual', 'Pago registrado en caja'),
+(2, 2, 2, 2, 244999, '2026-10-03', 'Transferencia', 'REC-2026-00002', 2026, 'I', 'Pago registrado en caja'),
+(3, 3, 3, 3, 200000, '2026-10-04', 'Tarjeta Débito', 'REC-2026-00003', 2026, 'I', 'Pago registrado en caja'),
+(4, 4, 4, 4, 135000, '2026-10-05', 'Tarjeta Crédito', 'REC-2026-00004', 2026, 'I', 'Pago registrado en caja'),
+(5, 5, 5, 5, 120000, '2026-10-06', 'Cheque', 'REC-2026-00005', 2026, 'I', 'Pago registrado en caja'),
+(6, 6, 6, 6, 55000, '2026-10-07', 'Efectivo', 'REC-2026-00006', 2026, 'I', 'Pago registrado en caja'),
+(7, 7, 7, 7, 9000, '2026-10-08', 'Transferencia', 'REC-2026-00007', 2026, 'I', 'Pago registrado en caja'),
+(8, 8, 8, 1, 350000, '2026-10-09', 'Tarjeta Débito', 'REC-2026-00008', 2026, 'Anual', 'Pago registrado en caja'),
+(9, 9, 9, 2, 280000, '2026-10-10', 'Tarjeta Crédito', 'REC-2026-00009', 2026, 'I', 'Pago registrado en caja'),
+(10, 10, 10, 3, 225000, '2026-10-11', 'Cheque', 'REC-2026-00010', 2026, 'I', 'Pago registrado en caja'),
+(11, 11, 11, 4, 150000, '2026-10-12', 'Efectivo', 'REC-2026-00011', 2026, 'I', 'Pago registrado en caja'),
+(12, 12, 12, 5, 132000, '2026-10-13', 'Transferencia', 'REC-2026-00012', 2026, 'I', 'Pago registrado en caja'),
+(13, 13, 13, 6, 30000, '2026-10-14', 'Tarjeta Débito', 'REC-2026-00013', 2026, 'I', 'Pago registrado en caja'),
+(14, 14, 14, 7, 10500, '2026-10-15', 'Tarjeta Crédito', 'REC-2026-00014', 2026, 'I', 'Pago registrado en caja'),
+(15, 15, 15, 1, 400000, '2026-10-16', 'Cheque', 'REC-2026-00015', 2026, 'Anual', 'Pago registrado en caja'),
+(16, 16, 16, 2, 315000, '2026-10-17', 'Efectivo', 'REC-2026-00016', 2026, 'I', 'Pago registrado en caja'),
+(17, 17, 17, 3, 250000, '2026-10-18', 'Transferencia', 'REC-2026-00017', 2026, 'I', 'Pago registrado en caja'),
+(18, 18, 18, 4, 165000, '2026-10-19', 'Tarjeta Débito', 'REC-2026-00018', 2026, 'I', 'Pago registrado en caja'),
+(19, 19, 19, 5, 72000, '2026-10-20', 'Tarjeta Crédito', 'REC-2026-00019', 2026, 'I', 'Pago registrado en caja'),
+(20, 20, 20, 6, 35000, '2026-10-21', 'Cheque', 'REC-2026-00020', 2026, 'I', 'Pago registrado en caja'),
+(21, 21, 21, 7, 12000, '2026-10-22', 'Efectivo', 'REC-2026-00021', 2026, 'I', 'Pago registrado en caja'),
+(22, 22, 22, 1, 450000, '2026-10-23', 'Transferencia', 'REC-2026-00022', 2026, 'Anual', 'Pago registrado en caja'),
+(23, 23, 23, 2, 315000, '2026-10-24', 'Tarjeta Débito', 'REC-2026-00023', 2026, 'I', 'Pago registrado en caja'),
+(24, 24, 24, 3, 275000, '2026-10-25', 'Tarjeta Crédito', 'REC-2026-00024', 2026, 'I', 'Pago registrado en caja'),
+(25, 25, 25, 4, 90000, '2026-10-26', 'Cheque', 'REC-2026-00025', 2026, 'I', 'Pago registrado en caja'),
+(26, 26, 26, 5, 84000, '2026-10-27', 'Efectivo', 'REC-2026-00026', 2026, 'I', 'Pago registrado en caja'),
+(27, 27, 27, 6, 40000, '2026-10-28', 'Transferencia', 'REC-2026-00027', 2026, 'I', 'Pago registrado en caja'),
+(28, 28, 28, 7, 13500, '2026-10-01', 'Tarjeta Débito', 'REC-2026-00028', 2026, 'I', 'Pago registrado en caja'),
+(29, 29, 29, 1, 500000, '2026-10-02', 'Tarjeta Crédito', 'REC-2026-00029', 2026, 'Anual', 'Pago registrado en caja'),
+(30, 30, 30, 2, 346500, '2026-10-03', 'Cheque', 'REC-2026-00030', 2026, 'I', 'Pago registrado en caja');
 
 INSERT INTO recursos (id_recurso, codigo_recurso, nombre_recurso, id_categoria, descripcion, fecha_adquisicion, ubicacion_fisica, estado_recurso) VALUES
 (1, 'REC-001', 'Libro: Cien Años de Soledad', 1, 'Recurso institucional: Libro: Cien Años de Soledad', '2024-03-01', 'Biblioteca', 'Prestado'),
@@ -1169,6 +1178,15 @@ INSERT INTO prestamos_profesor (id_prestamo, id_recurso, id_profesor, fecha_pres
 (9, 19, 9, '2026-10-05', '2026-12-15', NULL, 'Activo', 'Préstamo a profesor'),
 (10, 20, 10, '2026-10-05', '2026-12-15', NULL, 'Activo', 'Préstamo a profesor');
 
+-- Inicializa los consecutivos con los datos de prueba ya cargados
+INSERT INTO secuencias_financieras (nombre_secuencia, año, ultimo_valor)
+VALUES ('recibo', 2026, 30)
+ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 30);
+
+INSERT INTO secuencias_financieras (nombre_secuencia, año, ultimo_valor)
+VALUES ('factura', 2026, 0)
+ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 0);
+
 -- ============================================
 -- VERIFICATION
 -- ============================================
@@ -1179,4 +1197,5 @@ UNION ALL SELECT 'materias', COUNT(*) FROM materias
 UNION ALL SELECT 'registros_academicos', COUNT(*) FROM registros_academicos
 UNION ALL SELECT 'pagos', COUNT(*) FROM pagos
 UNION ALL SELECT 'clubes', COUNT(*) FROM clubes
-UNION ALL SELECT 'recursos', COUNT(*) FROM recursos;
+UNION ALL SELECT 'recursos', COUNT(*) FROM recursos
+UNION ALL SELECT 'secuencias_financieras', COUNT(*) FROM secuencias_financieras;

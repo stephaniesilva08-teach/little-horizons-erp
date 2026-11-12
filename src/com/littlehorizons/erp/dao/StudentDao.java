@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,11 @@ public class StudentDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, idStudent);
             return ps.executeUpdate() > 0;
+        } catch (SQLIntegrityConstraintViolationException e) {
+            LoggerUtil.error("Student has financial history and cannot be deleted", e);
+            throw new DataAccessException(
+                    "No se puede eliminar el estudiante porque tiene historial financiero "
+                    + "(pagos o cargos). Use el estado 'Retirado' en su lugar.", e);
         } catch (SQLException e) {
             LoggerUtil.error("Could not delete student", e);
             throw new DataAccessException("No se pudo eliminar el estudiante.", e);

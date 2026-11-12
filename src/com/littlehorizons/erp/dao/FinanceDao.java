@@ -288,28 +288,39 @@ public class FinanceDao {
     }
 
     public String nextReceiptNumber() {
-        String sql = "SELECT COUNT(*) + 1 FROM pagos";
-        try (Connection connection = ConnectionFactory.getInstance().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            int next = rs.next() ? rs.getInt(1) : 1;
-            return String.format("REC-%d-%05d", java.time.LocalDate.now().getYear(), next);
-        } catch (SQLException e) {
-            LoggerUtil.error("Could not build receipt number", e);
-            throw new DataAccessException("No se pudo generar el número de recibo.", e);
-        }
+        return nextSequenceNumber("recibo", "REC", "recibo");
     }
 
     public String nextInvoiceNumber() {
-        String sql = "SELECT COUNT(*) + 1 FROM facturas";
+        return nextSequenceNumber("factura", "FAC", "factura");
+    }
+
+    /**
+     * Reserves the next value of an annual sequence. The increment and the read
+     * happen on the same connection using LAST_INSERT_ID(expr), so concurrent
+     * callers cannot obtain the same number.
+     */
+    private String nextSequenceNumber(String sequenceName, String prefix,
+                                      String label) {
+        int year = java.time.LocalDate.now().getYear();
+        String sql = "INSERT INTO secuencias_financieras "
+                + "(nombre_secuencia, año, ultimo_valor) VALUES (?, ?, LAST_INSERT_ID(1)) "
+                + "ON DUPLICATE KEY UPDATE ultimo_valor = LAST_INSERT_ID(ultimo_valor + 1)";
         try (Connection connection = ConnectionFactory.getInstance().getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            int next = rs.next() ? rs.getInt(1) : 1;
-            return String.format("FAC-%d-%05d", java.time.LocalDate.now().getYear(), next);
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, sequenceName);
+            ps.setInt(2, year);
+            ps.executeUpdate();
+            try (PreparedStatement last = connection.prepareStatement(
+                    "SELECT LAST_INSERT_ID()");
+                 ResultSet rs = last.executeQuery()) {
+                int next = rs.next() ? rs.getInt(1) : 1;
+                return String.format("%s-%d-%05d", prefix, year, next);
+            }
         } catch (SQLException e) {
-            LoggerUtil.error("Could not build invoice number", e);
-            throw new DataAccessException("No se pudo generar el número de factura.", e);
+            LoggerUtil.error("Could not build " + label + " number", e);
+            throw new DataAccessException(
+                    "No se pudo generar el número de " + label + ".", e);
         }
     }
 

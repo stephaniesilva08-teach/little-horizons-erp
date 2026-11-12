@@ -365,6 +365,8 @@ View → Controller → DAO → MySQL
 - Consulta del historial de pagos por estudiante **o por acudiente** (hermanos).
 - Generación automática de factura `.txt` en `facturas/` y registro en la tabla
   `facturas`.
+- Consecutivos de recibo y factura generados con una secuencia atómica por año
+  (`secuencias_financieras`), sin condiciones de carrera entre usuarios.
 - La inserción del pago y su factura es **atómica**: si falla la factura, se revierte el
   pago.
 - La factura incluye datos del colegio, NIT, resolución simulada, número consecutivo,
@@ -573,5 +575,12 @@ Además del script base se agregaron los siguientes elementos, todos documentado
   inscripciones duplicadas en un mismo club.
 - Restricción única `id_pago` en `facturas` para garantizar una factura por pago.
 - Restricciones `CHECK` adicionales para montos, notas y años académicos.
+- Tabla `secuencias_financieras` para generar consecutivos de recibos y facturas de
+  forma atómica y segura ante concurrencia.
+- `ON DELETE RESTRICT` en `pagos`, `cargos_estudiante` y `facturas` para preservar el
+  historial financiero; un estudiante con pagos o cargos no puede eliminarse
+  físicamente.
+- Numeración de recibos unificada a cinco dígitos (`REC-2026-00001`) para que coincida
+  con el formato de las facturas (`FAC-2026-00001`).
 - La tabla `facturas` permanece vacía en el script; las facturas se generan desde la
   aplicación para mantener la trazabilidad con cada pago real.
