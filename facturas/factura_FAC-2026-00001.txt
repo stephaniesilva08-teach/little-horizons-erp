@@ -1,0 +1,31 @@
+==========================================================
+              FACTURA ELECTRÓNICA - LITTLE HORIZONS
+==========================================================
+Colegio: Colegio Internacional Little Horizons S.A.S.
+NIT: 8927456321
+Dirección: Calle 12 #34-56, Bogotá, Colombia
+Teléfono: +57 1 234 5678
+Correo: soporte@littlehorizons.edu.co
+Resolución de habilitación: 001-2026 (simulada)
+----------------------------------------------------------
+Número de factura: FAC-2026-00001
+Fecha de emisión: 2026-11-11
+----------------------------------------------------------
+INFORMACIÓN DEL CLIENTE
+Acudiente responsable: Carlos Andres Garcia Lopez
+Documento: 1020304050
+Estudiante: Sofia Valentina Garcia Rodriguez
+----------------------------------------------------------
+DETALLE
+Descripción                       Cant.     Valor unit.        Subtotal
+Pension Mensual                       1     $350.000,00     $350.000,00
+----------------------------------------------------------
+Subtotal:                                                   $350.000,00
+IVA (19%):                                                        $0,00
+TOTAL:                                                      $350.000,00
+----------------------------------------------------------
+CUMPLIMIENTO DIAN (SIMULADO)
+CUFE: be77c0904ce4ad54d88989692175c4723f9e2e8fe4b6252f766069e372630bcc
+QR: NIT=8927456321|FACTURA=FAC-2026-00001|FECHA=2026-11-11|TOTAL=350000.00|CUFE=be77c0904ce4ad54d88989692175c4723f9e2e8fe4b6252f766069e372630bcc
+==========================================================
+Gracias por su pago.
