@@ -196,6 +196,13 @@ public class FinanceController {
         return financeDao.findPaymentsByStudent(idStudent);
     }
 
+    public List<Payment> listPaymentsByGuardian(int idParent) {
+        if (idParent <= 0) {
+            throw new IllegalArgumentException("El acudiente es obligatorio.");
+        }
+        return financeDao.findPaymentsByGuardian(idParent);
+    }
+
     public Payment findPayment(int idPayment) {
         return financeDao.findPaymentById(idPayment);
     }

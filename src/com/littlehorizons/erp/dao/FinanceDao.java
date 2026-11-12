@@ -282,6 +282,11 @@ public class FinanceDao {
                 + "ORDER BY p.fecha_pago DESC", idStudent);
     }
 
+    public List<Payment> findPaymentsByGuardian(int idParent) {
+        return queryPayments(PAYMENT_SELECT + "WHERE p.id_acudiente = ? "
+                + "ORDER BY p.fecha_pago DESC", idParent);
+    }
+
     public String nextReceiptNumber() {
         String sql = "SELECT COUNT(*) + 1 FROM pagos";
         try (Connection connection = ConnectionFactory.getInstance().getConnection();

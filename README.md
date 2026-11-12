@@ -359,6 +359,7 @@ View → Controller → DAO → MySQL
 - Valores personalizados por estudiante para descuentos o becas.
 - Cargos por estudiante con vencimiento, período y estado.
 - Registro de pagos con estudiante, acudiente, concepto, monto, fecha, método y recibo.
+- Consulta del historial de pagos por estudiante **o por acudiente** (hermanos).
 - Generación automática de factura `.txt` en `facturas/` y registro en la tabla
   `facturas`.
 - La inserción del pago y su factura es **atómica**: si falla la factura, se revierte el

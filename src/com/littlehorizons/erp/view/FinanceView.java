@@ -324,15 +324,17 @@ public class FinanceView {
             ConsoleUtils.printHeader("PAGOS");
             System.out.println("  1. Listar todos los pagos");
             System.out.println("  2. Listar pagos de un estudiante");
-            System.out.println("  3. Consultar factura de un pago");
-            System.out.println("  4. Generar factura faltante");
+            System.out.println("  3. Listar pagos de un acudiente");
+            System.out.println("  4. Consultar factura de un pago");
+            System.out.println("  5. Generar factura faltante");
             System.out.println("  0. Volver");
-            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 4);
+            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
                 case 1 -> printPayments(controller.listPayments());
                 case 2 -> paymentsByStudent();
-                case 3 -> invoiceForPayment();
-                case 4 -> generateMissingInvoice();
+                case 3 -> paymentsByGuardian();
+                case 4 -> invoiceForPayment();
+                case 5 -> generateMissingInvoice();
                 case 0 -> back = true;
                 default -> { }
             }
@@ -343,6 +345,13 @@ public class FinanceView {
         int idStudent = ConsoleUtils.readInt("ID del estudiante: ");
         ViewUtils.execute(() -> printPayments(
                 controller.listPaymentsByStudent(idStudent)), null);
+        ConsoleUtils.pause();
+    }
+
+    private void paymentsByGuardian() {
+        int idParent = ConsoleUtils.readInt("ID del acudiente: ");
+        ViewUtils.execute(() -> printPayments(
+                controller.listPaymentsByGuardian(idParent)), null);
         ConsoleUtils.pause();
     }
 
