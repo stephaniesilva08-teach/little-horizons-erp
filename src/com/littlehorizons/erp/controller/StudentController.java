@@ -1,5 +1,6 @@
 package com.littlehorizons.erp.controller;
 
+import com.littlehorizons.erp.dao.ParentDao;
 import com.littlehorizons.erp.dao.StudentDao;
 import com.littlehorizons.erp.model.Student;
 import com.littlehorizons.erp.util.Validator;
@@ -13,13 +14,28 @@ import java.util.List;
 public class StudentController {
 
     private final StudentDao studentDao = new StudentDao();
+    private final ParentDao parentDao = new ParentDao();
 
-    public int register(Student student) {
+    public int register(Student student, int idParent) {
         validate(student, true);
+        if (idParent <= 0) {
+            throw new IllegalArgumentException(
+                    "Debe asociar un acudiente al registrar el estudiante.");
+        }
+        if (parentDao.findById(idParent) == null) {
+            throw new IllegalArgumentException("El acudiente no existe.");
+        }
         if (studentDao.findByDocument(student.getDocumentNumber()) != null) {
             throw new IllegalArgumentException("Ya existe un estudiante con ese documento.");
         }
-        return studentDao.insert(student);
+        int idStudent = studentDao.insert(student);
+        try {
+            studentDao.assignGuardian(idStudent, idParent, true, true);
+        } catch (RuntimeException e) {
+            studentDao.delete(idStudent);
+            throw e;
+        }
+        return idStudent;
     }
 
     public void update(Student student) {
@@ -68,6 +84,9 @@ public class StudentController {
                                boolean emergency) {
         if (studentDao.findById(idStudent) == null) {
             throw new IllegalArgumentException("El estudiante no existe.");
+        }
+        if (parentDao.findById(idParent) == null) {
+            throw new IllegalArgumentException("El acudiente no existe.");
         }
         studentDao.assignGuardian(idStudent, idParent, main, emergency);
     }

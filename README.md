@@ -318,6 +318,8 @@ View → Controller → DAO → MySQL
 ### 10.1. Estudiantes y acudientes
 
 - Registro, búsqueda por documento o nombre, actualización y eliminación.
+- El registro exige un acudiente existente y lo asocia como principal y contacto de
+  emergencia; así ningún estudiante queda sin acudiente.
 - Datos personales, contacto, tipo de sangre, alergias y condiciones médicas.
 - Asociación de varios acudientes por estudiante, con acudiente principal y contacto de
   emergencia.

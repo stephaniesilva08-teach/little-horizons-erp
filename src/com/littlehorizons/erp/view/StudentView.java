@@ -80,8 +80,10 @@ public class StudentView {
 
     private void register() {
         ConsoleUtils.printSubHeader("REGISTRAR ESTUDIANTE");
+        ConsoleUtils.printInfo("El acudiente debe existir previamente (menú Acudientes).");
         Student student = readStudent(null);
-        ViewUtils.executeWithId(() -> controller.register(student),
+        int idParent = ConsoleUtils.readInt("ID del acudiente responsable: ");
+        ViewUtils.executeWithId(() -> controller.register(student, idParent),
                 "Estudiante registrado con");
         ConsoleUtils.pause();
     }
