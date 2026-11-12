@@ -146,6 +146,8 @@ public class FinanceController {
                 TextInvoiceGenerator.generate(invoiceNumber, student.getFullName(),
                         guardian == null ? "No registrado" : guardian.getFullName(),
                         guardian == null ? "N/A" : guardian.getDocumentNumber(),
+                        guardian == null || !Validator.isNotEmpty(guardian.getAddress())
+                                ? "No registrada" : guardian.getAddress(),
                         concept.getConceptCode(), concept.getName(), 1,
                         payment.getAmountPaid());
         Invoice invoice = buildInvoice(invoiceNumber, generated, payment.getIdPayment());
@@ -172,6 +174,8 @@ public class FinanceController {
                 TextInvoiceGenerator.generate(invoiceNumber, student.getFullName(),
                         guardian == null ? "No registrado" : guardian.getFullName(),
                         guardian == null ? "N/A" : guardian.getDocumentNumber(),
+                        guardian == null || !Validator.isNotEmpty(guardian.getAddress())
+                                ? "No registrada" : guardian.getAddress(),
                         concept.getConceptCode(), concept.getName(), 1,
                         payment.getAmountPaid());
         Invoice invoice = buildInvoice(invoiceNumber, generated, payment.getIdPayment());

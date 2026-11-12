@@ -364,8 +364,8 @@ View → Controller → DAO → MySQL
 - La inserción del pago y su factura es **atómica**: si falla la factura, se revierte el
   pago.
 - La factura incluye datos del colegio, NIT, resolución simulada, número consecutivo,
-  datos del cliente, detalle, subtotal, IVA (19 % cuando aplica), total, CUFE simulado y
-  payload QR simulado.
+  datos del cliente (nombre, documento y **dirección**), detalle, subtotal, IVA (19 % cuando
+  aplica), total, CUFE simulado y payload QR simulado.
 
 Ejemplo de factura generada:
 
@@ -386,6 +386,7 @@ Fecha de emisión: 2026-11-11
 INFORMACIÓN DEL CLIENTE
 Acudiente responsable: Carlos Andres Garcia Lopez
 Documento: 1020304050
+Dirección: Calle 45 #12-34, Bogotá, Colombia
 Estudiante: Sofia Valentina Garcia Rodriguez
 ----------------------------------------------------------
 DETALLE

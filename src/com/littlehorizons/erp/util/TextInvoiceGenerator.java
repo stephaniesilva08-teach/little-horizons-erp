@@ -44,6 +44,7 @@ public final class TextInvoiceGenerator {
                                             String studentName,
                                             String guardianName,
                                             String guardianDocument,
+                                            String guardianAddress,
                                             String conceptCode,
                                             String conceptName,
                                             int quantity,
@@ -73,7 +74,7 @@ public final class TextInvoiceGenerator {
             Path fullPath = directory.resolve(fileName);
 
             String content = buildContent(invoiceNumber, studentName, guardianName,
-                    guardianDocument, conceptCode, conceptName, quantity,
+                    guardianDocument, guardianAddress, conceptCode, conceptName, quantity,
                     unitPrice, subtotal, vat, total, cufe, issueDate);
             Files.writeString(fullPath, content, StandardCharsets.UTF_8);
             restrictPermissions(fullPath);
@@ -89,6 +90,7 @@ public final class TextInvoiceGenerator {
 
     private static String buildContent(String invoiceNumber, String studentName,
                                        String guardianName, String guardianDocument,
+                                       String guardianAddress,
                                        String conceptCode, String conceptName,
                                        int quantity, BigDecimal unitPrice,
                                        BigDecimal subtotal, BigDecimal vat,
@@ -113,6 +115,7 @@ public final class TextInvoiceGenerator {
         text.append("INFORMACIÓN DEL CLIENTE\n");
         text.append("Acudiente responsable: ").append(guardianName).append('\n');
         text.append("Documento: ").append(guardianDocument).append('\n');
+        text.append("Dirección: ").append(guardianAddress).append('\n');
         text.append("Estudiante: ").append(studentName).append('\n');
         text.append("----------------------------------------------------------\n");
         text.append("DETALLE\n");
