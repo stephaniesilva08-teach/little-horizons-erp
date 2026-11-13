@@ -110,8 +110,11 @@ mysql -u root -p < docs/database.sql
 También se puede ejecutar desde MySQL Workbench o DBeaver abriendo el archivo y
 ejecutándolo completo. Al final, el script muestra un conteo de verificación por tabla.
 
-Si ya existe la base de datos y las tablas del ERP, no vuelva a ejecutar el script completo:
-aplique únicamente `docs/migrations/001_system_users.sql` para añadir las tablas de cuentas.
+Si ya existe la base de datos y las tablas del ERP, no vuelva a ejecutar el script completo.
+Aplique las migraciones pendientes una sola vez y en orden: `001_system_users.sql` para
+las tablas de cuentas y `002_financial_sequences.sql` para reconciliar los consecutivos
+de recibos y facturas con documentos existentes. La segunda migración se debe ejecutar
+en el esquema `erp_little_horizons`.
 
 ### 6.2. Configuración de credenciales
 
@@ -256,9 +259,10 @@ javac --release 17 -encoding UTF-8 -cp lib/mysql-connector-j-8.4.0.jar \
 java -cp "out-test:lib/mysql-connector-j-8.4.0.jar" com.littlehorizons.erp.test.AllTests
 ```
 
-Cubre validaciones de entrada, formato de facturas, reglas de registro de estudiantes
-con DAOs en memoria y el ciclo de vida del pool de conexiones. No requiere base de
-datos.
+Cubre validaciones de entrada, formato de facturas, reglas académicas, reactivación de
+membresías, identidad de entidades, atomicidad simulada de pagos/facturas, registro de
+estudiantes con DAOs en memoria y ciclo de vida del pool. En el corte auditado pasan
+42 pruebas; no requiere base de datos y no sustituye las pruebas de integración JDBC.
 
 ---
 
@@ -466,7 +470,8 @@ Gracias por su pago.
 - Préstamos a estudiantes y profesores con fecha esperada de devolución.
 - Cambio automático de estado del recurso: `Disponible → Prestado → Disponible`.
 - Devolución transaccional y registro de fecha real.
-- Los préstamos con fecha esperada superada se marcan automáticamente como `Vencido`.
+- El estado `Vencido` se calcula en las consultas a partir de la fecha límite; listar
+  préstamos no modifica datos.
 - Reporte de préstamos vencidos.
 
 ### 10.8. Reportes
@@ -476,7 +481,9 @@ Gracias por su pago.
 - Resumen de notas por materia y período (promedio, máxima, mínima, registros).
 - Resumen de asistencia.
 - Reporte de estudiantes morosos con cargos pendientes vencidos hace más de un mes
-  (cargado, pagado, saldo).
+  (cargado, pagos aplicados por antigüedad FIFO y saldo). Como el esquema no asocia un
+  pago a un cargo concreto, este reporte distribuye los pagos agregados al cargo más
+  antiguo primero; la asignación es una regla de reporte, no una relación persistida.
 - Préstamos vencidos.
 - Resumen de matrícula por grado.
 
@@ -516,6 +523,7 @@ Gracias por su pago.
   aplicación de forma ordenada en lugar de entrar en un bucle.
 - Los errores de conexión al inicio no muestran la URL ni las credenciales; registran
   únicamente SQLState y código del proveedor.
+- Los archivos de log rotan al alcanzar 5 MB y conservan hasta tres respaldos.
 
 ### Cuentas y roles de consola
 
