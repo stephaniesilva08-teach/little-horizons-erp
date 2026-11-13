@@ -57,6 +57,17 @@ public final class AuditLogger {
         append("MENU_SELECTION", "option=" + option, "SELECTED", "", "");
     }
 
+    public static synchronized void recordAuthenticationAttempt(String username,
+                                                                 boolean succeeded) {
+        append("AUTHENTICATION_ATTEMPT", "username=" + clean(username, 40),
+                succeeded ? "SUCCESS" : "FAILURE", "", "");
+    }
+
+    public static synchronized void recordAccessDenied(int option, String role) {
+        append("ACCESS_DENIED", "option=" + option + " role=" + clean(role, 40),
+                "DENIED", "", "");
+    }
+
     public static synchronized void beginAction(String action) {
         beginAction(action, null);
     }

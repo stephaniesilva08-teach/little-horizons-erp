@@ -6,6 +6,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
+import java.io.Console;
 
 /**
  * Console input/output helpers. All user input is validated here so that
@@ -19,13 +20,39 @@ public final class ConsoleUtils {
     }
 
     public static String readLine(String prompt) {
+        Console console = System.console();
+        if (console != null) {
+            String value = console.readLine(prompt);
+            if (value == null) {
+                System.out.println("\nFin de la entrada. Cerrando la aplicación.");
+                AuditLogger.endSession();
+                System.exit(0);
+            }
+            return value.trim();
+        }
         System.out.print(prompt);
         if (!SCANNER.hasNextLine()) {
             System.out.println();
             System.out.println("\nFin de la entrada. Cerrando la aplicación.");
+            AuditLogger.endSession();
             System.exit(0);
         }
         return SCANNER.nextLine().trim();
+    }
+
+    public static char[] readPassword(String prompt) {
+        Console console = System.console();
+        if (console == null) {
+            throw new IllegalStateException("Para ingresar contraseñas de forma segura, "
+                    + "ejecute la aplicación en una terminal interactiva.");
+        }
+        char[] value = console.readPassword("%s", prompt);
+        if (value == null) {
+            System.out.println("\nFin de la entrada. Cerrando la aplicación.");
+            AuditLogger.endSession();
+            System.exit(0);
+        }
+        return value;
     }
 
     public static String readNonEmpty(String prompt) {

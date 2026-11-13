@@ -2,9 +2,14 @@ package com.littlehorizons.erp;
 
 import com.littlehorizons.erp.util.AuditLogger;
 import com.littlehorizons.erp.util.ConnectionFactory;
-import com.littlehorizons.erp.util.ConsoleUtils;
 import com.littlehorizons.erp.util.Database;
+import com.littlehorizons.erp.util.DataAccessException;
 import com.littlehorizons.erp.util.LoggerUtil;
+import com.littlehorizons.erp.util.PasswordHasher;
+import com.littlehorizons.erp.dao.JdbcSystemUserDao;
+import com.littlehorizons.erp.controller.AuthenticationController;
+import com.littlehorizons.erp.model.SessionUser;
+import com.littlehorizons.erp.view.AuthenticationView;
 import com.littlehorizons.erp.view.MainMenu;
 
 import java.sql.Connection;
@@ -31,10 +36,18 @@ public class Main {
             System.out.println("  Conexión a la base de datos establecida.");
             System.out.println("  Base de datos: erp_little_horizons");
             LoggerUtil.info("Application started");
-            String operator = ConsoleUtils.readNonEmpty(
-                    "Nombre del operador para la bitácora: ");
-            AuditLogger.startSession(operator);
-            new MainMenu().show();
+            AuthenticationController authentication = new AuthenticationController(
+                    new JdbcSystemUserDao(Database.provider()), new PasswordHasher());
+            SessionUser user = new AuthenticationView(authentication).authenticate();
+            if (user != null) {
+                new MainMenu(user).show();
+            }
+        } catch (DataAccessException e) {
+            LoggerUtil.error("Could not initialize authentication", e);
+            System.err.println("\nNo se pudo iniciar la autenticación.");
+            System.err.println(e.getMessage());
+        } catch (IllegalStateException e) {
+            System.err.println("\n" + e.getMessage());
         } catch (SQLException e) {
             LoggerUtil.error("Could not connect to the database; SQLState="
                     + e.getSQLState() + ", vendorCode=" + e.getErrorCode(), null);

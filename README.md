@@ -110,6 +110,9 @@ mysql -u root -p < docs/database.sql
 También se puede ejecutar desde MySQL Workbench o DBeaver abriendo el archivo y
 ejecutándolo completo. Al final, el script muestra un conteo de verificación por tabla.
 
+Si ya existe la base de datos y las tablas del ERP, no vuelva a ejecutar el script completo:
+aplique únicamente `docs/migrations/001_system_users.sql` para añadir las tablas de cuentas.
+
 ### 6.2. Configuración de credenciales
 
 La aplicación **no incluye credenciales embebidas**. Antes de ejecutar, define las
@@ -234,6 +237,10 @@ java -jar target/erp-little-horizons-1.0.0.jar
 
 La aplicación verifica la conexión antes de mostrar el menú principal. Las facturas se
 crean en la carpeta `facturas/` del directorio desde el cual se ejecuta la aplicación.
+En el primer inicio, la consola permite crear el administrador inicial si aún no hay
+cuentas. Después pide usuario y contraseña; la contraseña se oculta al escribirla, por
+lo que debe ejecutarse desde una terminal interactiva compatible con `System.console()`.
+No existen credenciales predeterminadas.
 
 > Antes de ejecutar, configure `ERP_DB_USER` y `ERP_DB_PASSWORD` como se explica en la
 > sección 6.2. La aplicación no incluye credenciales embebidas y no inicia sin ellas.
@@ -287,6 +294,7 @@ Little-horizons-erp/
 | `model` | Clases de dominio (`Student`, `Parent`, `Teacher`, `Subject`, `Payment`, etc.) y records para reportes (`CourseAverage`, `Debtor`, `OverdueLoan`, etc.). |
 | `dao` | Interfaces de persistencia (`StudentDao`, `FinanceDao`, …) e implementaciones `Jdbc*Dao` con SQL, mapeo `ResultSet` → objeto y transacciones. Ningún DAO imprime por consola. |
 | `controller` | Validaciones, reglas de negocio, coordinación entre DAOs y generación de facturas. Recibe sus DAOs por constructor. |
+| Autenticación y autorización | `AuthenticationController`, `SystemUserController`, `SystemUserDao` y `AccessRole` gestionan sesiones, cuentas y roles. |
 | `view` | Menús, lectura de datos, tablas de salida y mensajes al usuario. |
 | `util` | `ConnectionProvider`, `ConnectionPool`, `Database` (composición), `ConnectionFactory`, `Validator`, `LoggerUtil`, `ConsoleUtils`, `TextInvoiceGenerator`, `FileUtil`, `DataAccessException`. |
 | `test` | Runner y casos de prueba en Java puro, con dobles en memoria para los DAOs. |
@@ -331,6 +339,8 @@ View → Controller → DAO → MySQL
   de entregarlas y las devuelve al pool al cerrarlas.
 - **Singleton:** `ConnectionFactory` mantiene una única configuración de conexión y
   `Database` una única instancia del pool.
+- **Autenticación de consola:** las cuentas usan contraseñas con salt aleatorio y PBKDF2;
+  cinco intentos fallidos bloquean temporalmente la cuenta. El menú aplica permisos por rol.
 - **Generador estático:** `TextInvoiceGenerator.generate(...)` centraliza la creación
   del archivo de factura y devuelve un `GeneratedInvoice` inmutable.
 - **DTO con `record`:** reportes y proyecciones (`CourseAverage`, `Debtor`,
@@ -481,10 +491,9 @@ Gracias por su pago.
 - Niveles: `INFO`, `WARN`, `DEBUG`, `ERROR`.
 - Cada entrada incluye fecha/hora, nivel y mensaje. Los errores incluyen la traza
   completa de la excepción, escrita en el archivo (no se imprime la traza en consola).
-- Las operaciones de consola se registran aparte en **`audit_log.txt`**. Al iniciar,
-  se solicita el nombre del operador para identificar esa sesión; esta etiqueta no es
-  una autenticación y se reemplazará por la identidad validada al implementar usuarios.
-  Se registran la selección de menús y el inicio y resultado de las operaciones, con
+- Las operaciones de consola se registran aparte en **`audit_log.txt`**. La bitácora
+  identifica cada sesión con el nombre de usuario autenticado. Registra la selección de
+  menús y el inicio y resultado de las operaciones, con
   fecha, sesión, pantalla, acción, resultado e ID cuando está disponible. No se guardan
   los valores personales introducidos en los formularios. En sistemas POSIX el archivo
   queda legible solo por el propietario.
@@ -505,6 +514,25 @@ Gracias por su pago.
   aplicación de forma ordenada en lugar de entrar en un bucle.
 - Los errores de conexión al inicio no muestran la URL ni las credenciales; registran
   únicamente SQLState y código del proveedor.
+
+### Cuentas y roles de consola
+
+- `ADMINISTRADOR`: acceso a todos los módulos y administración de usuarios.
+- `SECRETARIA`: estudiantes, acudientes, profesores, materias, matrículas, módulo académico
+  y actividades extracurriculares.
+- `DOCENTE`: módulo académico.
+- `FINANZAS`: módulo financiero y facturación.
+- `BIBLIOTECA`: inventario y préstamos de recursos.
+- Los reportes globales se reservan al administrador porque incluyen datos académicos,
+  financieros y de préstamos.
+- Un administrador puede listar, crear, desactivar y reactivar cuentas, y restablecer sus contraseñas.
+  El sistema impide desactivar la cuenta propia y exige mantener al menos un administrador.
+- Los nombres de usuario se guardan en minúsculas. Las contraseñas requieren entre 12 y
+  128 caracteres, con mayúscula, minúscula, número y símbolo; se almacenan como hash PBKDF2
+  con salt individual, nunca en texto plano.
+- La identidad autenticada alimenta `audit_log.txt`; no se registran contraseñas.
+- Los permisos se aplican por módulo en esta aplicación de consola. El rol docente todavía
+  no limita el acceso a cursos o estudiantes específicos.
 
 ---
 
@@ -554,7 +582,8 @@ GRADO  MATERIA                      SECCIÓN        PROMEDIO   ESTUDIANTES
 - La factura electrónica visual se genera en formato `.txt` con todos los elementos de cumplimiento fiscal DIAN (simulados para fines académicos).
 - Los nombres de tablas y columnas SQL están en español porque provienen del esquema
   oficial del proyecto; el código Java sí está completamente en inglés.
-- No se implementó autenticación de usuarios ni control de roles; el acceso es local.
+- Los permisos actuales separan módulos, pero todavía no filtran filas por docente, curso o
+  estudiante. El sistema es una aplicación local de consola, no un servicio multiusuario web.
 
 ---
 
@@ -562,7 +591,6 @@ GRADO  MATERIA                      SECCIÓN        PROMEDIO   ESTUDIANTES
 
 - Firma digital mediante certificado DIAN y envío del archivo `.txt` firmado.
 - Interfaz gráfica (JavaFX/Swing) o API REST con Spring Boot.
-- Autenticación con roles (administrador, profesor, acudiente).
 - Envío automático de facturas y boletines por correo electrónico.
 - Dashboard web con indicadores académicos y financieros.
 - Importación/exportación de datos en CSV y Excel.
