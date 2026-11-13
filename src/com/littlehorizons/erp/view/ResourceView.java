@@ -54,7 +54,8 @@ public class ResourceView {
 
     private void listCategories() {
         ConsoleUtils.printSubHeader("CATEGORÍAS");
-        List<ResourceCategory> categories = controller.listCategories();
+        List<ResourceCategory> categories = ViewUtils.query(
+                "list_resource_categories", controller::listCategories);
         if (categories.isEmpty()) {
             ConsoleUtils.printInfo("No hay categorías registradas.");
         } else {
@@ -85,8 +86,10 @@ public class ResourceView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printResources(controller.listResources());
-                case 2 -> printResources(controller.listAvailableResources());
+                case 1 -> printResources(ViewUtils.query(
+                        "list_resources", controller::listResources));
+                case 2 -> printResources(ViewUtils.query(
+                        "list_available_resources", controller::listAvailableResources));
                 case 3 -> createResource();
                 case 4 -> updateResource();
                 case 5 -> deleteResource();
@@ -123,7 +126,8 @@ public class ResourceView {
 
     private void updateResource() {
         int id = ConsoleUtils.readInt("ID del recurso: ");
-        Resource resource = controller.findResource(id);
+        Resource resource = ViewUtils.query("find_resource", id,
+                () -> controller.findResource(id));
         if (resource == null) {
             ConsoleUtils.printError("El recurso no existe.");
             ConsoleUtils.pause();
@@ -179,8 +183,10 @@ public class ResourceView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 8);
             switch (option) {
-                case 1 -> printLoans(controller.listStudentLoans());
-                case 2 -> printLoans(controller.listTeacherLoans());
+                case 1 -> printLoans(ViewUtils.query(
+                        "list_student_loans", controller::listStudentLoans));
+                case 2 -> printLoans(ViewUtils.query(
+                        "list_teacher_loans", controller::listTeacherLoans));
                 case 3 -> lendToStudent();
                 case 4 -> lendToTeacher();
                 case 5 -> returnStudentLoan();
@@ -266,13 +272,15 @@ public class ResourceView {
 
     private void listCategoryOptions() {
         System.out.println("  Categorías:");
-        controller.listCategories().forEach(c -> System.out.println("    "
+        ViewUtils.query("list_resource_categories", controller::listCategories)
+                .forEach(c -> System.out.println("    "
                 + c.getIdCategory() + " - " + c.getName()));
     }
 
     private void listAvailableOptions() {
         System.out.println("  Recursos disponibles:");
-        controller.listAvailableResources().forEach(r -> System.out.println("    "
+        ViewUtils.query("list_available_resources", controller::listAvailableResources)
+                .forEach(r -> System.out.println("    "
                 + r.getIdResource() + " - " + r.getResourceCode()
                 + " " + r.getName()));
     }

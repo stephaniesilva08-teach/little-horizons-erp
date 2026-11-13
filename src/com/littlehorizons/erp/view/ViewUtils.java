@@ -8,6 +8,7 @@ import com.littlehorizons.erp.util.TextInvoiceGenerator;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Shared helpers for the console views.
@@ -65,6 +66,23 @@ public final class ViewUtils {
         }
     }
 
+    public static <T> T query(String actionCode, Supplier<T> query) {
+        return query(actionCode, null, query);
+    }
+
+    public static <T> T query(String actionCode, Integer recordId, Supplier<T> query) {
+        AuditLogger.beginAction(actionCode, recordId);
+        try {
+            T result = query.get();
+            AuditLogger.completeAction(actionCode, recordId, true, "");
+            return result;
+        } catch (RuntimeException e) {
+            AuditLogger.completeAction(actionCode, recordId, false,
+                    e.getClass().getSimpleName());
+            throw e;
+        }
+    }
+
     public static String readWithDefault(String prompt, String current) {
         String label = current == null || current.isBlank()
                 ? prompt : prompt + " [" + current + "]";
@@ -76,12 +94,14 @@ public final class ViewUtils {
         while (true) {
             String value = readWithDefault(prompt, current);
             if (value == null || value.isBlank()) {
+                AuditLogger.recordInputRejected();
                 ConsoleUtils.printError("La fecha es obligatoria.");
                 continue;
             }
             try {
                 return java.time.LocalDate.parse(value).toString();
             } catch (java.time.format.DateTimeParseException e) {
+                AuditLogger.recordInputRejected();
                 ConsoleUtils.printError("Fecha inválida. Use el formato YYYY-MM-DD.");
             }
         }
@@ -98,6 +118,7 @@ public final class ViewUtils {
             try {
                 return new BigDecimal(value.replace(",", "."));
             } catch (NumberFormatException e) {
+                AuditLogger.recordInputRejected();
                 ConsoleUtils.printError("Ingrese un valor numérico válido.");
             }
         }

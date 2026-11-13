@@ -50,8 +50,9 @@ public class ExtracurricularView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printClubs(controller.listClubs());
-                case 2 -> printClubs(controller.listActiveClubs());
+                case 1 -> printClubs(ViewUtils.query("list_clubs", controller::listClubs));
+                case 2 -> printClubs(ViewUtils.query("list_active_clubs",
+                        controller::listActiveClubs));
                 case 3 -> createClub();
                 case 4 -> updateClub();
                 case 5 -> deleteClub();
@@ -87,7 +88,7 @@ public class ExtracurricularView {
 
     private void updateClub() {
         int id = ConsoleUtils.readInt("ID del club: ");
-        Club club = controller.findClub(id);
+        Club club = ViewUtils.query("find_club", id, () -> controller.findClub(id));
         if (club == null) {
             ConsoleUtils.printError("El club no existe.");
             ConsoleUtils.pause();
@@ -131,7 +132,8 @@ public class ExtracurricularView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 6);
             switch (option) {
-                case 1 -> printMemberships(controller.listAllMemberships());
+                case 1 -> printMemberships(ViewUtils.query("list_club_memberships",
+                        controller::listAllMemberships));
                 case 2 -> { }
                 case 3 -> { }
                 case 4 -> enrollInClub();
@@ -208,8 +210,9 @@ public class ExtracurricularView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printEvents(controller.listEvents());
-                case 2 -> printEvents(controller.listActiveEvents());
+                case 1 -> printEvents(ViewUtils.query("list_events", controller::listEvents));
+                case 2 -> printEvents(ViewUtils.query("list_active_events",
+                        controller::listActiveEvents));
                 case 3 -> createEvent();
                 case 4 -> updateEvent();
                 case 5 -> deleteEvent();
@@ -244,7 +247,7 @@ public class ExtracurricularView {
 
     private void updateEvent() {
         int id = ConsoleUtils.readInt("ID del evento: ");
-        Event event = controller.findEvent(id);
+        Event event = ViewUtils.query("find_event", id, () -> controller.findEvent(id));
         if (event == null) {
             ConsoleUtils.printError("El evento no existe.");
             ConsoleUtils.pause();

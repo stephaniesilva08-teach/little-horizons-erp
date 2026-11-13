@@ -42,7 +42,7 @@ public class MatriculationView {
     }
 
     private void listAll() {
-        printList(controller.listAll());
+        printList(ViewUtils.query("list_matriculations", controller::listAll));
         ConsoleUtils.pause();
     }
 
@@ -84,7 +84,8 @@ public class MatriculationView {
     private void update() {
         ConsoleUtils.printSubHeader("ACTUALIZAR MATRÍCULA");
         int id = ConsoleUtils.readInt("ID de la matrícula: ");
-        Matriculation m = controller.findById(id);
+        Matriculation m = ViewUtils.query("find_matriculation", id,
+                () -> controller.findById(id));
         if (m == null) {
             ConsoleUtils.printError("La matrícula no existe.");
             ConsoleUtils.pause();
@@ -99,7 +100,7 @@ public class MatriculationView {
     private void delete() {
         ConsoleUtils.printSubHeader("ELIMINAR MATRÍCULA");
         int id = ConsoleUtils.readInt("ID de la matrícula: ");
-        if (controller.findById(id) == null) {
+        if (ViewUtils.query("find_matriculation", id, () -> controller.findById(id)) == null) {
             ConsoleUtils.printError("La matrícula no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),

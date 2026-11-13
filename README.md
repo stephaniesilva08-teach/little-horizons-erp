@@ -492,12 +492,13 @@ Gracias por su pago.
 - Cada entrada incluye fecha/hora, nivel y mensaje. Los errores registran el tipo de
   excepción y sus marcos de pila, sin incluir textos de usuario ni contraseñas.
 - Los mensajes de consola se muestran en español. Los archivos técnicos `error_log.txt`
-  y `audit_log.txt` se escriben en inglés. La bitácora de acciones
-  identifica cada sesión con el nombre de usuario autenticado. Registra la selección de
-  menús y el inicio y resultado de las operaciones, con
-  fecha, sesión, pantalla, acción, resultado e ID cuando está disponible. No se guardan
-  los valores personales introducidos en los formularios. En sistemas POSIX el archivo
-  queda legible solo por el propietario.
+  y `audit_log.txt` se escriben en inglés. La bitácora registra aperturas de pantalla,
+  selección de opciones con su módulo, intentos de autenticación, rechazos de validación,
+  consultas identificadas, y el inicio y resultado de las operaciones. Cada entrada incluye
+  fecha, sesión, rol, acción, resultado e ID cuando está disponible. El operador se
+  identifica con su ID interno, sin guardar el nombre de usuario, contraseñas ni valores
+  personales introducidos en formularios. En sistemas POSIX el archivo queda legible solo
+  por el propietario.
 
 ### Estrategia de excepciones
 

@@ -352,7 +352,8 @@ public class AcademicView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printAssignments(controller.listAssignments());
+                case 1 -> printAssignments(ViewUtils.query("list_teacher_assignments",
+                        controller::listAssignments));
                 case 2 -> assignmentsByTeacher();
                 case 3 -> createAssignment();
                 case 4 -> updateAssignment();
@@ -516,7 +517,8 @@ public class AcademicView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printEnrollments(controller.listEnrollments());
+                case 1 -> printEnrollments(ViewUtils.query("list_subject_enrollments",
+                        controller::listEnrollments));
                 case 2 -> enrollmentsByStudent();
                 case 3 -> createEnrollment();
                 case 4 -> updateEnrollment();

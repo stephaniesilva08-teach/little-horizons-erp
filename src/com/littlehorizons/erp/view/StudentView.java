@@ -48,7 +48,7 @@ public class StudentView {
 
     private void listAll() {
         ConsoleUtils.printSubHeader("LISTADO DE ESTUDIANTES");
-        List<Student> students = controller.listAll();
+        List<Student> students = ViewUtils.query("list_students", controller::listAll);
         if (students.isEmpty()) {
             ConsoleUtils.printInfo("No hay estudiantes registrados.");
         } else {
@@ -91,7 +91,7 @@ public class StudentView {
     private void update() {
         ConsoleUtils.printSubHeader("ACTUALIZAR ESTUDIANTE");
         int id = ConsoleUtils.readInt("ID del estudiante: ");
-        Student student = controller.findById(id);
+        Student student = ViewUtils.query("find_student", id, () -> controller.findById(id));
         if (student == null) {
             ConsoleUtils.printError("El estudiante no existe.");
             ConsoleUtils.pause();
@@ -106,7 +106,7 @@ public class StudentView {
     private void delete() {
         ConsoleUtils.printSubHeader("ELIMINAR ESTUDIANTE");
         int id = ConsoleUtils.readInt("ID del estudiante: ");
-        if (controller.findById(id) == null) {
+        if (ViewUtils.query("find_student", id, () -> controller.findById(id)) == null) {
             ConsoleUtils.printError("El estudiante no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),

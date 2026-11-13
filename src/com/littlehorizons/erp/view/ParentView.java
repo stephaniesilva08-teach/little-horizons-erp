@@ -38,7 +38,7 @@ public class ParentView {
 
     private void listAll() {
         ConsoleUtils.printSubHeader("LISTADO DE ACUDIENTES");
-        List<Parent> parents = controller.listAll();
+        List<Parent> parents = ViewUtils.query("list_guardians", controller::listAll);
         if (parents.isEmpty()) {
             ConsoleUtils.printInfo("No hay acudientes registrados.");
         } else {
@@ -80,7 +80,7 @@ public class ParentView {
     private void update() {
         ConsoleUtils.printSubHeader("ACTUALIZAR ACUDIENTE");
         int id = ConsoleUtils.readInt("ID del acudiente: ");
-        Parent parent = controller.findById(id);
+        Parent parent = ViewUtils.query("find_guardian", id, () -> controller.findById(id));
         if (parent == null) {
             ConsoleUtils.printError("El acudiente no existe.");
             ConsoleUtils.pause();
@@ -95,7 +95,7 @@ public class ParentView {
     private void delete() {
         ConsoleUtils.printSubHeader("ELIMINAR ACUDIENTE");
         int id = ConsoleUtils.readInt("ID del acudiente: ");
-        if (controller.findById(id) == null) {
+        if (ViewUtils.query("find_guardian", id, () -> controller.findById(id)) == null) {
             ConsoleUtils.printError("El acudiente no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),

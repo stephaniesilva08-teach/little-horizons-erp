@@ -61,6 +61,7 @@ public final class ConsoleUtils {
             if (Validator.isNotEmpty(value)) {
                 return value;
             }
+            AuditLogger.recordInputRejected();
             printError("Este campo es obligatorio. Intente nuevamente.");
         }
     }
@@ -80,8 +81,10 @@ public final class ConsoleUtils {
                     }
                     return number;
                 }
+                AuditLogger.recordInputRejected();
                 printError("El valor debe estar entre " + min + " y " + max + ".");
             } catch (NumberFormatException e) {
+                AuditLogger.recordInputRejected();
                 printError("Ingrese un número válido.");
             }
         }
@@ -99,8 +102,10 @@ public final class ConsoleUtils {
                 if (number.doubleValue() >= min && number.doubleValue() <= max) {
                     return number;
                 }
+                AuditLogger.recordInputRejected();
                 printError("El valor debe estar entre " + min + " y " + max + ".");
             } catch (NumberFormatException e) {
+                AuditLogger.recordInputRejected();
                 printError("Ingrese un valor numérico válido.");
             }
         }
@@ -112,6 +117,7 @@ public final class ConsoleUtils {
             if (Validator.isValidDate(value)) {
                 return LocalDate.parse(value).toString();
             }
+            AuditLogger.recordInputRejected();
             printError("Fecha inválida. Use el formato YYYY-MM-DD.");
         }
     }
@@ -136,6 +142,7 @@ public final class ConsoleUtils {
                     return option;
                 }
             }
+            AuditLogger.recordInputRejected();
             printError("Opción inválida. Valores permitidos: " + allowed);
         }
     }
@@ -150,6 +157,7 @@ public final class ConsoleUtils {
             if (value.equalsIgnoreCase("N") || value.equalsIgnoreCase("NO")) {
                 return false;
             }
+            AuditLogger.recordInputRejected();
             printError("Responda S o N.");
         }
     }

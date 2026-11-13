@@ -29,13 +29,13 @@ public final class AuthenticationView {
             char[] password = ConsoleUtils.readPassword("Contraseña: ");
             try {
                 SessionUser user = controller.authenticate(username, password);
-                AuditLogger.recordAuthenticationAttempt(username, true);
-                AuditLogger.startSession(user.username());
+                AuditLogger.startSession(Integer.toString(user.id()), user.role().name());
+                AuditLogger.recordAuthenticationAttempt(true);
                 ConsoleUtils.printSuccess("Bienvenido, " + user.displayName()
                         + " (" + user.role() + ").");
                 return user;
             } catch (AuthenticationException e) {
-                AuditLogger.recordAuthenticationAttempt(username, false);
+                AuditLogger.recordAuthenticationAttempt(false);
                 ConsoleUtils.printError(e.getMessage());
             }
         }
@@ -55,18 +55,19 @@ public final class AuthenticationView {
             boolean matches = Arrays.equals(password, confirmation);
             PasswordHasher.clear(confirmation);
             if (!matches) {
+                AuditLogger.recordInputRejected();
                 PasswordHasher.clear(password);
                 ConsoleUtils.printError("Las contraseñas no coinciden.");
                 continue;
             }
-            AuditLogger.startSession(username);
+            AuditLogger.startSession("bootstrap", "ADMIN");
             AuditLogger.beginAction("Crear administrador inicial");
             try {
                 SessionUser user = controller.createFirstAdministrator(
                         username, displayName, password);
                 AuditLogger.completeAction("Crear administrador inicial",
                         user.id(), true, "");
-                AuditLogger.recordAuthenticationAttempt(username, true);
+                AuditLogger.recordAuthenticationAttempt(true);
                 ConsoleUtils.printSuccess("Administrador creado. Sesión iniciada.");
                 return user;
             } catch (IllegalArgumentException e) {

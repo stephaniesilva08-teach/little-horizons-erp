@@ -41,7 +41,7 @@ public class SubjectView {
 
     private void listAll() {
         ConsoleUtils.printSubHeader("LISTADO DE MATERIAS");
-        List<Subject> subjects = controller.listAll();
+        List<Subject> subjects = ViewUtils.query("list_subjects", controller::listAll);
         if (subjects.isEmpty()) {
             ConsoleUtils.printInfo("No hay materias registradas.");
         } else {
@@ -82,7 +82,7 @@ public class SubjectView {
     private void update() {
         ConsoleUtils.printSubHeader("ACTUALIZAR MATERIA");
         int id = ConsoleUtils.readInt("ID de la materia: ");
-        Subject subject = controller.findById(id);
+        Subject subject = ViewUtils.query("find_subject", id, () -> controller.findById(id));
         if (subject == null) {
             ConsoleUtils.printError("La materia no existe.");
             ConsoleUtils.pause();
@@ -97,7 +97,7 @@ public class SubjectView {
     private void delete() {
         ConsoleUtils.printSubHeader("ELIMINAR MATERIA");
         int id = ConsoleUtils.readInt("ID de la materia: ");
-        if (controller.findById(id) == null) {
+        if (ViewUtils.query("find_subject", id, () -> controller.findById(id)) == null) {
             ConsoleUtils.printError("La materia no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),

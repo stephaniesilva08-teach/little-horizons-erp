@@ -63,8 +63,10 @@ public class FinanceView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printConcepts(controller.listActiveConcepts());
-                case 2 -> printConcepts(controller.listAllConcepts());
+                case 1 -> printConcepts(ViewUtils.query("list_active_payment_concepts",
+                        controller::listActiveConcepts));
+                case 2 -> printConcepts(ViewUtils.query("list_payment_concepts",
+                        controller::listAllConcepts));
                 case 3 -> createConcept();
                 case 4 -> updateConcept();
                 case 5 -> deleteConcept();
@@ -100,7 +102,8 @@ public class FinanceView {
 
     private void updateConcept() {
         int id = ConsoleUtils.readInt("ID del concepto: ");
-        PaymentConcept concept = controller.findConcept(id);
+        PaymentConcept concept = ViewUtils.query("find_payment_concept", id,
+                () -> controller.findConcept(id));
         if (concept == null) {
             ConsoleUtils.printError("El concepto no existe.");
             ConsoleUtils.pause();
@@ -192,7 +195,7 @@ public class FinanceView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printCharges(controller.listCharges());
+                case 1 -> printCharges(ViewUtils.query("list_charges", controller::listCharges));
                 case 2 -> chargesByStudent();
                 case 3 -> createCharge();
                 case 4 -> updateChargeState();
@@ -230,7 +233,8 @@ public class FinanceView {
         int idStudent = ConsoleUtils.readInt("ID del estudiante: ");
         listConcepts();
         int idConcept = ConsoleUtils.readInt("ID del concepto: ");
-        PaymentConcept concept = controller.findConcept(idConcept);
+        PaymentConcept concept = ViewUtils.query("find_payment_concept", idConcept,
+                () -> controller.findConcept(idConcept));
         if (concept == null) {
             ConsoleUtils.printError("El concepto no existe.");
             ConsoleUtils.pause();
@@ -289,7 +293,8 @@ public class FinanceView {
         }
         listConcepts();
         int idConcept = ConsoleUtils.readInt("ID del concepto: ");
-        PaymentConcept concept = controller.findConcept(idConcept);
+        PaymentConcept concept = ViewUtils.query("find_payment_concept", idConcept,
+                () -> controller.findConcept(idConcept));
         if (concept == null) {
             ConsoleUtils.printError("El concepto no existe.");
             ConsoleUtils.pause();
@@ -330,7 +335,7 @@ public class FinanceView {
             System.out.println("  0. Volver");
             int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 5);
             switch (option) {
-                case 1 -> printPayments(controller.listPayments());
+                case 1 -> printPayments(ViewUtils.query("list_payments", controller::listPayments));
                 case 2 -> paymentsByStudent();
                 case 3 -> paymentsByGuardian();
                 case 4 -> invoiceForPayment();
@@ -373,7 +378,8 @@ public class FinanceView {
     private void invoiceForPayment() {
         int idPayment = ConsoleUtils.readInt("ID del pago: ");
         ViewUtils.execute(() -> {
-            Invoice invoice = controller.findInvoiceByPayment(idPayment);
+            Invoice invoice = ViewUtils.query("find_invoice_by_payment", idPayment,
+                    () -> controller.findInvoiceByPayment(idPayment));
             if (invoice == null) {
                 ConsoleUtils.printInfo("El pago no tiene factura asociada.");
                 return;
@@ -390,7 +396,8 @@ public class FinanceView {
 
     private void generateMissingInvoice() {
         int idPayment = ConsoleUtils.readInt("ID del pago: ");
-        Payment payment = controller.findPayment(idPayment);
+        Payment payment = ViewUtils.query("find_payment", idPayment,
+                () -> controller.findPayment(idPayment));
         if (payment == null) {
             ConsoleUtils.printError("El pago no existe.");
             ConsoleUtils.pause();
@@ -410,7 +417,7 @@ public class FinanceView {
 
     private void listInvoices() {
         ConsoleUtils.printSubHeader("FACTURAS GENERADAS");
-        List<Invoice> invoices = controller.listInvoices();
+        List<Invoice> invoices = ViewUtils.query("list_invoices", controller::listInvoices);
         if (invoices.isEmpty()) {
             ConsoleUtils.printInfo("No hay facturas registradas.");
         } else {
@@ -426,7 +433,8 @@ public class FinanceView {
 
     private void listConcepts() {
         System.out.println("  Conceptos activos:");
-        for (PaymentConcept c : controller.listActiveConcepts()) {
+        for (PaymentConcept c : ViewUtils.query("list_active_payment_concepts",
+                controller::listActiveConcepts)) {
             System.out.println("    " + c.getIdConcept() + " - " + c.getConceptCode()
                     + " " + c.getName() + " (" + ViewUtils.money(c.getBaseAmount()) + ")");
         }

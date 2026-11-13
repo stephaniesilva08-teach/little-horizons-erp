@@ -53,7 +53,8 @@ public final class SystemUserView {
         System.out.printf("%-5s %-24s %-30s %-18s %-10s%n",
                 "ID", "USUARIO", "NOMBRE", "ROL", "ESTADO");
         ViewUtils.printSeparator();
-        controller.listUsers().forEach(user -> System.out.printf("%-5d %-24s %-30s %-18s %-10s%n",
+        ViewUtils.query("list_system_users", controller::listUsers)
+                .forEach(user -> System.out.printf("%-5d %-24s %-30s %-18s %-10s%n",
                 user.id(), user.username(), user.displayName(), user.role().displayName(),
                 user.active() ? "Activa" : "Inactiva"));
         ConsoleUtils.pause();

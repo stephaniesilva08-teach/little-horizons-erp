@@ -18,6 +18,7 @@ public final class AuditLogger {
 
     private static final Path AUDIT_FILE = Path.of("audit_log.txt");
     private static String operator = "";
+    private static String role = "unknown";
     private static String sessionId = "";
     private static String screen = "application";
 
@@ -25,7 +26,12 @@ public final class AuditLogger {
     }
 
     public static synchronized void startSession(String operatorName) {
-        operator = clean(operatorName, 80);
+        startSession(operatorName, "unknown");
+    }
+
+    public static synchronized void startSession(String operatorName, String roleName) {
+        operator = "actor_id:" + clean(operatorName, 40);
+        role = clean(roleName, 40);
         if (operator.isBlank()) {
             throw new IllegalArgumentException("El nombre del operador es obligatorio.");
         }
@@ -37,6 +43,8 @@ public final class AuditLogger {
         if (!sessionId.isBlank()) {
             append("SESSION_END", "console", "SUCCESS", "", "");
             sessionId = "";
+            operator = "";
+            role = "unknown";
         }
     }
 
@@ -56,13 +64,39 @@ public final class AuditLogger {
     }
 
     public static synchronized void recordMenuSelection(int option) {
-        append("MENU_SELECTION", "option=" + option, "SELECTED", "", "");
+        append("MENU_SELECTION", "screen=" + clean(screen, 60)
+                + " option=" + option, "SELECTED", "", "");
     }
 
-    public static synchronized void recordAuthenticationAttempt(String username,
-                                                                 boolean succeeded) {
-        append("AUTHENTICATION_ATTEMPT", "username=" + clean(username, 40),
+    public static synchronized void recordAuthenticationAttempt(boolean succeeded) {
+        boolean temporarySession = sessionId.isBlank();
+        if (temporarySession) {
+            sessionId = UUID.randomUUID().toString();
+            operator = "anonymous";
+            role = "unknown";
+        }
+        append("AUTHENTICATION_ATTEMPT", "authenticate",
                 succeeded ? "SUCCESS" : "FAILURE", "", "");
+        if (temporarySession) {
+            sessionId = "";
+            operator = "";
+            role = "unknown";
+        }
+    }
+
+    public static synchronized void recordInputRejected() {
+        boolean temporarySession = sessionId.isBlank();
+        if (temporarySession) {
+            sessionId = UUID.randomUUID().toString();
+            operator = "anonymous";
+            role = "unknown";
+        }
+        append("INPUT_VALIDATION_FAILED", "input_validation", "REJECTED", "", "");
+        if (temporarySession) {
+            sessionId = "";
+            operator = "";
+            role = "unknown";
+        }
     }
 
     public static synchronized void recordAccessDenied(int option, String role) {
@@ -93,6 +127,7 @@ public final class AuditLogger {
         String entry = "timestamp=" + Instant.now()
                 + " | session=" + clean(sessionId, 40)
                 + " | operator=" + clean(operator, 80)
+                + " | role=" + clean(role, 40)
                 + " | screen=" + clean(screen, 100)
                 + " | event=" + clean(event, 40)
                 + " | action=" + clean(action, 120)
@@ -151,6 +186,9 @@ public final class AuditLogger {
 
     private static String actionCode(String action) {
         String value = normalize(action);
+        if (value.matches("[a-z][a-z0-9_]{0,79}")) {
+            return value;
+        }
         if (value.contains("pago")) return "register_payment";
         if (value.contains("devolucion")) return "return_resource";
         if (value.contains("asociad")) return "associate_record";
