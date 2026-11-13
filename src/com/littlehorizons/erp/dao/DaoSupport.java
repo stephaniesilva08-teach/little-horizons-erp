@@ -61,4 +61,11 @@ public final class DaoSupport {
             return keys.next() ? keys.getInt(1) : 0;
         }
     }
+
+    public static void requireUpdated(int rows, String entity) {
+        if (rows == 0) {
+            throw new IllegalArgumentException("No se encontró " + entity
+                    + " para actualizar.");
+        }
+    }
 }

@@ -121,9 +121,13 @@ public class Event {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Event)) return false;
-        Event that = (Event) other;
-        return name != null && name.equals(that.name)
-                && eventDate.equals(that.eventDate);
+        if (!(other instanceof Event that)) return false;
+        return idEvent > 0 && idEvent == that.idEvent;
+    }
+
+    @Override
+    public int hashCode() {
+        return idEvent > 0 ? Integer.hashCode(idEvent)
+                : System.identityHashCode(this);
     }
 }

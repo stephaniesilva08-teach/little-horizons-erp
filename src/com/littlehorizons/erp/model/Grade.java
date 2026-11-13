@@ -66,8 +66,13 @@ public class Grade {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Grade)) return false;
-        Grade that = (Grade) other;
-        return name != null && name.equals(that.name);
+        if (!(other instanceof Grade that)) return false;
+        return idGrade > 0 && idGrade == that.idGrade;
+    }
+
+    @Override
+    public int hashCode() {
+        return idGrade > 0 ? Integer.hashCode(idGrade)
+                : System.identityHashCode(this);
     }
 }

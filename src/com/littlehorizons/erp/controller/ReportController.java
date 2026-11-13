@@ -58,7 +58,6 @@ public class ReportController {
     }
 
     public List<OverdueLoan> overdueLoans() {
-        resourceDao.markOverdueLoans();
         return reportDao.overdueLoans();
     }
 

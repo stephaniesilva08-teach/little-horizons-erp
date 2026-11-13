@@ -58,7 +58,7 @@ public class JdbcSubjectDao implements SubjectDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             bind(ps, subject);
             ps.setInt(7, subject.getIdSubject());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "la materia");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update subject", e);
             throw new DataAccessException("No se pudo actualizar la materia.", e);

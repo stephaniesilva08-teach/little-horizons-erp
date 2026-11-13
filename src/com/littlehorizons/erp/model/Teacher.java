@@ -3,6 +3,8 @@
  */
 package com.littlehorizons.erp.model;
 
+import com.littlehorizons.erp.util.NameFormatter;
+
 public class Teacher {
 
     
@@ -124,7 +126,7 @@ public class Teacher {
 
     
     public String getFullName() {
-        return firstName + " " + secondName + " " + firstLastName + " " + secondLastName;
+        return NameFormatter.fullName(firstName, secondName, firstLastName, secondLastName);
     }
 
     
@@ -142,9 +144,13 @@ public class Teacher {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Teacher)) return false;
-        Teacher that = (Teacher) other;
-        return documentNumber != null && that.documentNumber != null
-                && documentNumber.equals(that.documentNumber);
+        if (!(other instanceof Teacher that)) return false;
+        return idTeacher > 0 && idTeacher == that.idTeacher;
+    }
+
+    @Override
+    public int hashCode() {
+        return idTeacher > 0 ? Integer.hashCode(idTeacher)
+                : System.identityHashCode(this);
     }
 }

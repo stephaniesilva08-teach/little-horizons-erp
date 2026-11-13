@@ -32,8 +32,8 @@ public class JdbcMatriculationDao implements MatriculationDao {
     private static final String BASE_SELECT =
             "SELECT m.id_matricula, m.id_estudiante, m.id_grado, m.año_academico, "
             + "m.estado_matricula, m.fecha_matricula, m.fecha_retiro, m.observaciones, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, g.nombre_grado "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, g.nombre_grado "
             + "FROM matriculas m "
             + "INNER JOIN estudiantes e ON e.id_estudiante = m.id_estudiante "
             + "INNER JOIN grados g ON g.id_grado = m.id_grado ";
@@ -72,7 +72,7 @@ public class JdbcMatriculationDao implements MatriculationDao {
             DaoSupport.setDate(ps, 3, matriculation.getWithdrawalDate());
             ps.setString(4, matriculation.getObservations());
             ps.setInt(5, matriculation.getIdMatriculation());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "la matrícula");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update matriculation", e);
             throw new DataAccessException("No se pudo actualizar la matrícula.", e);

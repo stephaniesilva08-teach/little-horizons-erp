@@ -64,7 +64,7 @@ public class JdbcTeacherDao implements TeacherDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             bind(ps, teacher);
             ps.setInt(12, teacher.getIdTeacher());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el profesor");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update teacher", e);
             throw new DataAccessException("No se pudo actualizar el profesor.", e);

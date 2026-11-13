@@ -67,7 +67,7 @@ public class JdbcParentDao implements ParentDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             bind(ps, parent);
             ps.setInt(14, parent.getIdParent());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el acudiente");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update guardian", e);
             throw new DataAccessException("No se pudo actualizar el acudiente.", e);

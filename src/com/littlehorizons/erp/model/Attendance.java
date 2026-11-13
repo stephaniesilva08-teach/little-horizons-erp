@@ -102,10 +102,13 @@ public class Attendance {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Attendance)) return false;
-        Attendance that = (Attendance) other;
-        return idStudent == that.idStudent
-                && idSubject == that.idSubject
-                && attendanceDate.equals(that.attendanceDate);
+        if (!(other instanceof Attendance that)) return false;
+        return idAttendance > 0 && idAttendance == that.idAttendance;
+    }
+
+    @Override
+    public int hashCode() {
+        return idAttendance > 0 ? Integer.hashCode(idAttendance)
+                : System.identityHashCode(this);
     }
 }

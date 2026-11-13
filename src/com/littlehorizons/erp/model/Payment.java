@@ -133,8 +133,13 @@ public class Payment {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Payment)) return false;
-        Payment that = (Payment) other;
-        return receiptNumber != null && receiptNumber.equals(that.receiptNumber);
+        if (!(other instanceof Payment that)) return false;
+        return idPayment > 0 && idPayment == that.idPayment;
+    }
+
+    @Override
+    public int hashCode() {
+        return idPayment > 0 ? Integer.hashCode(idPayment)
+                : System.identityHashCode(this);
     }
 }

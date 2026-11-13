@@ -108,8 +108,13 @@ public class PaymentConcept {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof PaymentConcept)) return false;
-        PaymentConcept that = (PaymentConcept) other;
-        return conceptCode != null && conceptCode.equals(that.conceptCode);
+        if (!(other instanceof PaymentConcept that)) return false;
+        return idConcept > 0 && idConcept == that.idConcept;
+    }
+
+    @Override
+    public int hashCode() {
+        return idConcept > 0 ? Integer.hashCode(idConcept)
+                : System.identityHashCode(this);
     }
 }

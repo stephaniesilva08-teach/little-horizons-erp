@@ -33,8 +33,8 @@ public class JdbcEnrollmentDao implements EnrollmentDao {
             "SELECT im.id_inscripcion, im.id_estudiante, im.id_materia, "
             + "im.año_academico, im.periodo_academico, im.seccion, "
             + "im.fecha_inscripcion, im.estado, im.fecha_creacion, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, m.nombre_materia "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, m.nombre_materia "
             + "FROM inscripciones_materia im "
             + "INNER JOIN estudiantes e ON e.id_estudiante = im.id_estudiante "
             + "INNER JOIN materias m ON m.id_materia = im.id_materia ";
@@ -65,7 +65,7 @@ public class JdbcEnrollmentDao implements EnrollmentDao {
             ps.setString(1, enrollment.getSection());
             ps.setString(2, enrollment.getState());
             ps.setInt(3, enrollment.getIdEnrollment());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "la inscripción");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update enrollment", e);
             throw new DataAccessException("No se pudo actualizar la inscripción.", e);

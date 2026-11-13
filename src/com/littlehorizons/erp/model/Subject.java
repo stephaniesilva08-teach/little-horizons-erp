@@ -97,8 +97,13 @@ public class Subject {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Subject)) return false;
-        Subject that = (Subject) other;
-        return subjectCode != null && subjectCode.equals(that.subjectCode);
+        if (!(other instanceof Subject that)) return false;
+        return idSubject > 0 && idSubject == that.idSubject;
+    }
+
+    @Override
+    public int hashCode() {
+        return idSubject > 0 ? Integer.hashCode(idSubject)
+                : System.identityHashCode(this);
     }
 }

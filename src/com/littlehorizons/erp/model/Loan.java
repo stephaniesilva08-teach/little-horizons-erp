@@ -130,9 +130,13 @@ public class Loan {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Loan)) return false;
-        Loan that = (Loan) other;
-        return idResource == that.idResource
-                && loanDate.equals(that.loanDate);
+        if (!(other instanceof Loan that)) return false;
+        return idLoan > 0 && idLoan == that.idLoan;
+    }
+
+    @Override
+    public int hashCode() {
+        return idLoan > 0 ? Integer.hashCode(idLoan)
+                : System.identityHashCode(this);
     }
 }

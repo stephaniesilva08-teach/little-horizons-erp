@@ -42,8 +42,6 @@ public interface ResourceDao {
 
     List<Loan> findLoansByTeacher(int idTeacher);
 
-    int markOverdueLoans();
-
     void returnStudentLoan(int idLoan);
 
     void returnTeacherLoan(int idLoan);

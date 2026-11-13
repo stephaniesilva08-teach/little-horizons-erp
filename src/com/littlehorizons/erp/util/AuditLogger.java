@@ -3,6 +3,7 @@ package com.littlehorizons.erp.util;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.text.Normalizer;
@@ -17,6 +18,8 @@ import java.util.UUID;
 public final class AuditLogger {
 
     private static final Path AUDIT_FILE = Path.of("audit_log.txt");
+    private static final long MAX_AUDIT_BYTES = 5L * 1024 * 1024;
+    private static final int AUDIT_BACKUPS = 3;
     private static String operator = "";
     private static String role = "unknown";
     private static String sessionId = "";
@@ -136,6 +139,7 @@ public final class AuditLogger {
                 + " | errorType=" + clean(errorType, 80)
                 + System.lineSeparator();
         try {
+            rotateIfNeeded(entry.length());
             Files.writeString(AUDIT_FILE, entry, StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND, StandardOpenOption.WRITE);
             restrictPermissions();
@@ -143,6 +147,21 @@ public final class AuditLogger {
             throw new IllegalStateException(
                     "No se pudo escribir en audit_log.txt; no se puede continuar "
                     + "sin registrar la acción.", e);
+        }
+    }
+
+    private static void rotateIfNeeded(int incomingChars) throws IOException {
+        if (!Files.exists(AUDIT_FILE)
+                || Files.size(AUDIT_FILE) + incomingChars < MAX_AUDIT_BYTES) {
+            return;
+        }
+        for (int generation = AUDIT_BACKUPS; generation >= 1; generation--) {
+            Path source = generation == 1 ? AUDIT_FILE
+                    : Path.of(AUDIT_FILE + "." + (generation - 1));
+            Path target = Path.of(AUDIT_FILE + "." + generation);
+            if (Files.exists(source)) {
+                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+            }
         }
     }
 

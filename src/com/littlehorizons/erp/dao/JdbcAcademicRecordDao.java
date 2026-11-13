@@ -35,10 +35,10 @@ public class JdbcAcademicRecordDao implements AcademicRecordDao {
             "SELECT r.id_registro, r.id_estudiante, r.id_materia, r.id_profesor, "
             + "r.año_academico, r.periodo_academico, r.valor_nota, r.observaciones, "
             + "r.fecha_registro, r.fecha_creacion, r.fecha_actualizacion, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, m.nombre_materia AS subject_name, "
-            + "CONCAT_WS(' ', p.primer_nombre, p.segundo_nombre, p.primer_apellido, "
-            + "p.segundo_apellido) AS teacher_name "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, m.nombre_materia AS subject_name, "
+            + "CONCAT_WS(' ', NULLIF(TRIM(p.primer_nombre), ''), NULLIF(TRIM(p.segundo_nombre), ''), NULLIF(TRIM(p.primer_apellido), ''), "
+            + "NULLIF(TRIM(p.segundo_apellido), '')) AS teacher_name "
             + "FROM registros_academicos r "
             + "INNER JOIN estudiantes e ON e.id_estudiante = r.id_estudiante "
             + "INNER JOIN materias m ON m.id_materia = r.id_materia "
@@ -71,7 +71,7 @@ public class JdbcAcademicRecordDao implements AcademicRecordDao {
             ps.setString(2, record.getObservations());
             DaoSupport.setDate(ps, 3, record.getRecordDate());
             ps.setInt(4, record.getIdRecord());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "la nota");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update academic record", e);
             throw new DataAccessException("No se pudo actualizar la nota.", e);

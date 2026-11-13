@@ -99,8 +99,13 @@ public class Invoice {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Invoice)) return false;
-        Invoice that = (Invoice) other;
-        return invoiceNumber != null && invoiceNumber.equals(that.invoiceNumber);
+        if (!(other instanceof Invoice that)) return false;
+        return idInvoice > 0 && idInvoice == that.idInvoice;
+    }
+
+    @Override
+    public int hashCode() {
+        return idInvoice > 0 ? Integer.hashCode(idInvoice)
+                : System.identityHashCode(this);
     }
 }

@@ -28,6 +28,13 @@ public final class InMemoryStudentDao implements StudentDao {
     }
 
     @Override
+    public int insertWithGuardian(Student student, int idParent) {
+        int id = insert(student);
+        assignGuardian(id, idParent, true, true);
+        return id;
+    }
+
+    @Override
     public void update(Student student) {
         students.put(student.getIdStudent(), student);
         documents.put(student.getDocumentNumber(), student.getIdStudent());

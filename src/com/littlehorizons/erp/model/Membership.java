@@ -99,10 +99,13 @@ public class Membership {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Membership)) return false;
-        Membership that = (Membership) other;
-        return idStudent == that.idStudent
-                && idClub == that.idClub
-                && entryDate.equals(that.entryDate);
+        if (!(other instanceof Membership that)) return false;
+        return idMembership > 0 && idMembership == that.idMembership;
+    }
+
+    @Override
+    public int hashCode() {
+        return idMembership > 0 ? Integer.hashCode(idMembership)
+                : System.identityHashCode(this);
     }
 }

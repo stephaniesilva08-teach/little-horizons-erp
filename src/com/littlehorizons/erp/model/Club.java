@@ -109,8 +109,13 @@ public class Club {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Club)) return false;
-        Club that = (Club) other;
-        return name != null && name.equals(that.name);
+        if (!(other instanceof Club that)) return false;
+        return idClub > 0 && idClub == that.idClub;
+    }
+
+    @Override
+    public int hashCode() {
+        return idClub > 0 ? Integer.hashCode(idClub)
+                : System.identityHashCode(this);
     }
 }

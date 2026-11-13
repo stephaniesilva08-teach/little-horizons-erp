@@ -35,8 +35,8 @@ public class JdbcAttendanceDao implements AttendanceDao {
     private static final String BASE_SELECT =
             "SELECT a.id_asistencia, a.id_estudiante, a.id_materia, a.fecha_asistencia, "
             + "a.estado_asistencia, a.observaciones, a.registrado_por, a.fecha_creacion, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, m.nombre_materia AS subject_name "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, m.nombre_materia AS subject_name "
             + "FROM asistencias a "
             + "INNER JOIN estudiantes e ON e.id_estudiante = a.id_estudiante "
             + "INNER JOIN materias m ON m.id_materia = a.id_materia ";
@@ -67,7 +67,7 @@ public class JdbcAttendanceDao implements AttendanceDao {
             ps.setString(1, attendance.getState());
             ps.setString(2, attendance.getObservations());
             ps.setInt(3, attendance.getIdAttendance());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "la asistencia");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update attendance", e);
             throw new DataAccessException("No se pudo actualizar la asistencia.", e);
@@ -120,17 +120,18 @@ public class JdbcAttendanceDao implements AttendanceDao {
     }
 
     public List<AttendanceSummary> summaryByStudent(int academicYear) {
-        String sql = "SELECT a.id_estudiante, CONCAT_WS(' ', e.primer_nombre, "
-                + "e.segundo_nombre, e.primer_apellido, e.segundo_apellido) AS student_name, "
+        String sql = "SELECT a.id_estudiante, CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), "
+                + "NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, "
                 + "a.estado_asistencia, COUNT(*) AS total FROM asistencias a "
                 + "INNER JOIN estudiantes e ON e.id_estudiante = a.id_estudiante "
-                + "WHERE YEAR(a.fecha_asistencia) = ? "
+                + "WHERE a.fecha_asistencia >= ? AND a.fecha_asistencia < ? "
                 + "GROUP BY a.id_estudiante, student_name, a.estado_asistencia "
                 + "ORDER BY student_name, a.estado_asistencia";
         List<AttendanceSummary> list = new ArrayList<>();
         try (Connection connection = connectionProvider.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, academicYear);
+            ps.setDate(1, java.sql.Date.valueOf(LocalDate.of(academicYear, 1, 1)));
+            ps.setDate(2, java.sql.Date.valueOf(LocalDate.of(academicYear + 1, 1, 1)));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(new AttendanceSummary(rs.getInt("id_estudiante"),
@@ -146,12 +147,13 @@ public class JdbcAttendanceDao implements AttendanceDao {
     }
 
     public List<AttendanceAlert> findRecurringAbsences(int minimumAbsences) {
-        String sql = "SELECT a.id_estudiante, CONCAT_WS(' ', e.primer_nombre, "
-                + "e.segundo_nombre, e.primer_apellido, e.segundo_apellido) AS student_name, "
+        String sql = "SELECT a.id_estudiante, CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), "
+                + "NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, "
                 + "DATE_SUB(a.fecha_asistencia, INTERVAL WEEKDAY(a.fecha_asistencia) DAY) "
                 + "AS week_start, COUNT(*) AS total FROM asistencias a "
                 + "INNER JOIN estudiantes e ON e.id_estudiante = a.id_estudiante "
                 + "WHERE a.estado_asistencia = 'Ausente' "
+                + "AND a.fecha_asistencia >= DATE_SUB(CURRENT_DATE, INTERVAL 90 DAY) "
                 + "GROUP BY a.id_estudiante, student_name, week_start "
                 + "HAVING COUNT(*) >= ? ORDER BY week_start DESC, total DESC";
         List<AttendanceAlert> alerts = new ArrayList<>();

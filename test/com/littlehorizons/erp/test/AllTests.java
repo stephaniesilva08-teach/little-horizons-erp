@@ -21,6 +21,9 @@ public final class AllTests {
         TextInvoiceGeneratorTest.register(suite);
         StudentControllerTest.register(suite);
         AcademicControllerTest.register(suite);
+        ExtracurricularControllerTest.register(suite);
+        JdbcFinanceDaoTest.register(suite);
+        ModelIdentityTest.register(suite);
         ConnectionPoolTest.register(suite);
         boolean success = suite.run();
         System.exit(success ? 0 : 1);

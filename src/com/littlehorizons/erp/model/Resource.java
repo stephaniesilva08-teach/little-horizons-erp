@@ -115,8 +115,13 @@ public class Resource {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Resource)) return false;
-        Resource that = (Resource) other;
-        return resourceCode != null && resourceCode.equals(that.resourceCode);
+        if (!(other instanceof Resource that)) return false;
+        return idResource > 0 && idResource == that.idResource;
+    }
+
+    @Override
+    public int hashCode() {
+        return idResource > 0 ? Integer.hashCode(idResource)
+                : System.identityHashCode(this);
     }
 }

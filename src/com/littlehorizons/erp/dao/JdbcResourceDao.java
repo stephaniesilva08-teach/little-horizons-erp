@@ -48,20 +48,26 @@ public class JdbcResourceDao implements ResourceDao {
 
     private static final String STUDENT_LOAN_SELECT =
             "SELECT ps.id_prestamo, ps.id_recurso, ps.id_estudiante, ps.fecha_prestamo, "
-            + "ps.fecha_devolucion_esperada, ps.fecha_devolucion_real, ps.estado_prestamo, "
+            + "ps.fecha_devolucion_esperada, ps.fecha_devolucion_real, "
+            + "CASE WHEN ps.estado_prestamo = 'Activo' "
+            + "AND ps.fecha_devolucion_esperada < CURRENT_DATE THEN 'Vencido' "
+            + "ELSE ps.estado_prestamo END AS estado_prestamo, "
             + "ps.observaciones, ps.fecha_creacion, r.nombre_recurso, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS borrower_name "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS borrower_name "
             + "FROM prestamos_estudiante ps "
             + "INNER JOIN recursos r ON r.id_recurso = ps.id_recurso "
             + "INNER JOIN estudiantes e ON e.id_estudiante = ps.id_estudiante ";
 
     private static final String TEACHER_LOAN_SELECT =
             "SELECT pp.id_prestamo, pp.id_recurso, pp.id_profesor, pp.fecha_prestamo, "
-            + "pp.fecha_devolucion_esperada, pp.fecha_devolucion_real, pp.estado_prestamo, "
+            + "pp.fecha_devolucion_esperada, pp.fecha_devolucion_real, "
+            + "CASE WHEN pp.estado_prestamo = 'Activo' "
+            + "AND pp.fecha_devolucion_esperada < CURRENT_DATE THEN 'Vencido' "
+            + "ELSE pp.estado_prestamo END AS estado_prestamo, "
             + "pp.observaciones, pp.fecha_creacion, r.nombre_recurso, "
-            + "CONCAT_WS(' ', p.primer_nombre, p.segundo_nombre, p.primer_apellido, "
-            + "p.segundo_apellido) AS borrower_name "
+            + "CONCAT_WS(' ', NULLIF(TRIM(p.primer_nombre), ''), NULLIF(TRIM(p.segundo_nombre), ''), NULLIF(TRIM(p.primer_apellido), ''), "
+            + "NULLIF(TRIM(p.segundo_apellido), '')) AS borrower_name "
             + "FROM prestamos_profesor pp "
             + "INNER JOIN recursos r ON r.id_recurso = pp.id_recurso "
             + "INNER JOIN profesores p ON p.id_profesor = pp.id_profesor ";
@@ -247,43 +253,6 @@ public class JdbcResourceDao implements ResourceDao {
     public List<Loan> findLoansByTeacher(int idTeacher) {
         return queryLoans(TEACHER_LOAN_SELECT + "WHERE pp.id_profesor = ? "
                 + "ORDER BY pp.fecha_prestamo DESC", "Profesor", idTeacher);
-    }
-
-    /**
-     * Marks every active loan whose expected return date has passed as overdue.
-     *
-     * @return the number of loans updated.
-     */
-    public int markOverdueLoans() {
-        String studentSql = "UPDATE prestamos_estudiante SET estado_prestamo = 'Vencido' "
-                + "WHERE estado_prestamo = 'Activo' "
-                + "AND fecha_devolucion_esperada < CURRENT_DATE";
-        String teacherSql = "UPDATE prestamos_profesor SET estado_prestamo = 'Vencido' "
-                + "WHERE estado_prestamo = 'Activo' "
-                + "AND fecha_devolucion_esperada < CURRENT_DATE";
-        try (Connection connection = connectionProvider.getConnection()) {
-            connection.setAutoCommit(false);
-            try {
-                int updated;
-                try (PreparedStatement ps = connection.prepareStatement(studentSql)) {
-                    updated = ps.executeUpdate();
-                }
-                try (PreparedStatement ps = connection.prepareStatement(teacherSql)) {
-                    updated += ps.executeUpdate();
-                }
-                connection.commit();
-                return updated;
-            } catch (SQLException e) {
-                connection.rollback();
-                throw e;
-            } finally {
-                connection.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            LoggerUtil.error("Could not mark overdue loans", e);
-            throw new DataAccessException(
-                    "No se pudieron actualizar los préstamos vencidos.", e);
-        }
     }
 
     public void returnStudentLoan(int idLoan) {

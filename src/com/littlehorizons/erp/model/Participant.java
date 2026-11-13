@@ -99,10 +99,13 @@ public class Participant {
     @Override
     public boolean equals(Object other) {
         if (this == other) return true;
-        if (!(other instanceof Participant)) return false;
-        Participant that = (Participant) other;
-        return idEvent == that.idEvent
-                && idStudent == that.idStudent
-                && creationDate.equals(that.creationDate);
+        if (!(other instanceof Participant that)) return false;
+        return idParticipation > 0 && idParticipation == that.idParticipation;
+    }
+
+    @Override
+    public int hashCode() {
+        return idParticipation > 0 ? Integer.hashCode(idParticipation)
+                : System.identityHashCode(this);
     }
 }

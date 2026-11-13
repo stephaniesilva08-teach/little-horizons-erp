@@ -33,8 +33,8 @@ public class JdbcAssignmentDao implements AssignmentDao {
     private static final String ASSIGNMENT_SELECT =
             "SELECT ap.id_asignacion, ap.id_profesor, ap.id_materia, ap.año_academico, "
             + "ap.seccion, ap.fecha_creacion, "
-            + "CONCAT_WS(' ', p.primer_nombre, p.segundo_nombre, p.primer_apellido, "
-            + "p.segundo_apellido) AS teacher_name, m.nombre_materia "
+            + "CONCAT_WS(' ', NULLIF(TRIM(p.primer_nombre), ''), NULLIF(TRIM(p.segundo_nombre), ''), NULLIF(TRIM(p.primer_apellido), ''), "
+            + "NULLIF(TRIM(p.segundo_apellido), '')) AS teacher_name, m.nombre_materia "
             + "FROM asignaciones_profesor ap "
             + "INNER JOIN profesores p ON p.id_profesor = ap.id_profesor "
             + "INNER JOIN materias m ON m.id_materia = ap.id_materia ";

@@ -113,7 +113,7 @@ public class JdbcStudentDao implements StudentDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             bind(ps, student);
             ps.setInt(17, student.getIdStudent());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el estudiante");
             LoggerUtil.info("Student updated: " + student.getIdStudent());
         } catch (SQLException e) {
             LoggerUtil.error("Could not update student", e);

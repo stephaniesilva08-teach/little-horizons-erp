@@ -33,15 +33,15 @@ public class JdbcEventDao implements EventDao {
     private static final String EVENT_SELECT =
             "SELECT ev.id_evento, ev.nombre_evento, ev.descripcion, ev.tipo_evento, "
             + "ev.fecha_evento, ev.lugar, ev.tiene_competencia, ev.id_organizador, "
-            + "ev.esta_activo, ev.fecha_creacion, CONCAT_WS(' ', p.primer_nombre, "
-            + "p.segundo_nombre, p.primer_apellido, p.segundo_apellido) AS organizer_name "
+            + "ev.esta_activo, ev.fecha_creacion, CONCAT_WS(' ', NULLIF(TRIM(p.primer_nombre), ''), "
+            + "NULLIF(TRIM(p.segundo_nombre), ''), NULLIF(TRIM(p.primer_apellido), ''), NULLIF(TRIM(p.segundo_apellido), '')) AS organizer_name "
             + "FROM eventos ev LEFT JOIN profesores p ON p.id_profesor = ev.id_organizador ";
 
     private static final String PARTICIPANT_SELECT =
             "SELECT pe.id_participacion, pe.id_evento, pe.id_estudiante, "
             + "pe.rol_participacion, pe.posicion_obtenida, pe.observaciones, "
-            + "pe.fecha_creacion, CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, "
-            + "e.primer_apellido, e.segundo_apellido) AS student_name, ev.nombre_evento "
+            + "pe.fecha_creacion, CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), "
+            + "NULLIF(TRIM(e.primer_apellido), ''), NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, ev.nombre_evento "
             + "FROM participantes_evento pe "
             + "INNER JOIN estudiantes e ON e.id_estudiante = pe.id_estudiante "
             + "INNER JOIN eventos ev ON ev.id_evento = pe.id_evento ";
@@ -94,7 +94,7 @@ public class JdbcEventDao implements EventDao {
             }
             ps.setBoolean(8, event.isActive());
             ps.setInt(9, event.getIdEvent());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el evento");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update event", e);
             throw new DataAccessException("No se pudo actualizar el evento.", e);
