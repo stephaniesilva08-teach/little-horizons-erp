@@ -21,7 +21,7 @@ public final class SystemUserView {
     }
 
     public void show() {
-        if (currentUser.role() != AccessRole.ADMINISTRADOR) {
+        if (currentUser.role() != AccessRole.ADMINISTRATOR) {
             AuditLogger.recordAccessDenied(11, currentUser.role().name());
             ConsoleUtils.printError("No tiene permiso para administrar cuentas.");
             return;
@@ -54,7 +54,7 @@ public final class SystemUserView {
                 "ID", "USUARIO", "NOMBRE", "ROL", "ESTADO");
         ViewUtils.printSeparator();
         controller.listUsers().forEach(user -> System.out.printf("%-5d %-24s %-30s %-18s %-10s%n",
-                user.id(), user.username(), user.displayName(), user.role(),
+                user.id(), user.username(), user.displayName(), user.role().displayName(),
                 user.active() ? "Activa" : "Inactiva"));
         ConsoleUtils.pause();
     }
@@ -63,8 +63,9 @@ public final class SystemUserView {
         ConsoleUtils.printSubHeader("CREAR CUENTA");
         String displayName = ConsoleUtils.readNonEmpty("Nombre visible: ");
         String username = ConsoleUtils.readNonEmpty("Usuario: ");
-        AccessRole role = AccessRole.valueOf(ConsoleUtils.readEnum("Rol",
-                Arrays.stream(AccessRole.values()).map(Enum::name).toArray(String[]::new)));
+        AccessRole role = AccessRole.fromDisplayName(ConsoleUtils.readEnum("Rol",
+                Arrays.stream(AccessRole.values()).map(AccessRole::displayName)
+                        .toArray(String[]::new)));
         char[] password = ConsoleUtils.readPassword("Contraseña temporal: ");
         char[] confirmation = ConsoleUtils.readPassword("Confirme la contraseña: ");
         boolean matches = Arrays.equals(password, confirmation);

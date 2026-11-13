@@ -75,7 +75,7 @@ public final class SystemUserController {
     }
 
     private void requireAdministrator() {
-        if (currentUser == null || currentUser.role() != AccessRole.ADMINISTRADOR) {
+        if (currentUser == null || currentUser.role() != AccessRole.ADMINISTRATOR) {
             throw new IllegalArgumentException("Solo un administrador puede gestionar cuentas.");
         }
     }

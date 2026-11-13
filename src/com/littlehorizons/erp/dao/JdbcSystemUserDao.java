@@ -79,7 +79,7 @@ public final class JdbcSystemUserDao implements SystemUserDao {
                     }
                 }
                 int id = insertUser(connection, username, displayName,
-                        AccessRole.ADMINISTRADOR, salt, passwordHash);
+                        AccessRole.ADMINISTRATOR, salt, passwordHash);
                 connection.commit();
                 return id;
             } catch (SQLException | RuntimeException e) {
@@ -122,7 +122,7 @@ public final class JdbcSystemUserDao implements SystemUserDao {
             while (rs.next()) {
                 users.add(new SessionUser(rs.getInt("id_usuario"),
                         rs.getString("nombre_usuario"), rs.getString("nombre_visible"),
-                        AccessRole.valueOf(rs.getString("rol")),
+                        AccessRole.fromDatabaseValue(rs.getString("rol")),
                         rs.getBoolean("esta_activo")));
             }
             return users;
@@ -224,7 +224,7 @@ public final class JdbcSystemUserDao implements SystemUserDao {
                 if (role == null || !active) {
                     throw new IllegalArgumentException("La cuenta no existe o ya está inactiva.");
                 }
-                if (AccessRole.ADMINISTRADOR.name().equals(role)) {
+                if (AccessRole.ADMINISTRATOR.databaseValue().equals(role)) {
                     try (PreparedStatement ps = connection.prepareStatement(
                             "SELECT COUNT(*) FROM usuarios_sistema WHERE rol = 'ADMINISTRADOR' "
                             + "AND esta_activo = TRUE");
@@ -278,7 +278,7 @@ public final class JdbcSystemUserDao implements SystemUserDao {
                 Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, username);
             ps.setString(2, displayName);
-            ps.setString(3, role.name());
+            ps.setString(3, role.databaseValue());
             ps.setBytes(4, salt);
             ps.setBytes(5, passwordHash);
             ps.executeUpdate();

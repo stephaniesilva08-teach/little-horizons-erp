@@ -36,7 +36,7 @@ public final class AuthenticationController {
             int id = userDao.createFirstAdministrator(normalize(username), displayName.trim(),
                     credentials.salt(), credentials.hash());
             return new SessionUser(id, normalize(username), displayName.trim(),
-                    AccessRole.ADMINISTRADOR, true);
+                    AccessRole.ADMINISTRATOR, true);
         } finally {
             PasswordHasher.clear(password);
         }
@@ -60,7 +60,7 @@ public final class AuthenticationController {
             }
             userDao.resetFailedAttempts(credential.id());
             return new SessionUser(credential.id(), credential.username(),
-                    credential.displayName(), AccessRole.valueOf(credential.role()), true);
+                    credential.displayName(), AccessRole.fromDatabaseValue(credential.role()), true);
         } finally {
             PasswordHasher.clear(password);
         }
