@@ -134,6 +134,31 @@ public class JdbcEnrollmentDao implements EnrollmentDao {
         }
     }
 
+    public SubjectEnrollment findActive(int idStudent, int idSubject, int academicYear,
+                                        String academicPeriod) {
+        String sql = BASE_SELECT + "WHERE im.id_estudiante = ? AND im.id_materia = ? "
+                + "AND im.año_academico = ? AND im.estado = 'Activa' ";
+        if (academicPeriod != null) {
+            sql += "AND im.periodo_academico = ? ";
+        }
+        sql += "ORDER BY im.periodo_academico DESC LIMIT 1";
+        try (Connection connection = connectionProvider.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idStudent);
+            ps.setInt(2, idSubject);
+            ps.setInt(3, academicYear);
+            if (academicPeriod != null) {
+                ps.setString(4, academicPeriod);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? map(rs) : null;
+            }
+        } catch (SQLException e) {
+            LoggerUtil.error("Could not find active enrollment", e);
+            throw new DataAccessException("No se pudo validar la inscripción.", e);
+        }
+    }
+
     private void bind(PreparedStatement ps, SubjectEnrollment e) throws SQLException {
         ps.setInt(1, e.getIdStudent());
         ps.setInt(2, e.getIdSubject());

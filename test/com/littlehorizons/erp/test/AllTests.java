@@ -20,6 +20,7 @@ public final class AllTests {
         ValidatorTest.register(suite);
         TextInvoiceGeneratorTest.register(suite);
         StudentControllerTest.register(suite);
+        AcademicControllerTest.register(suite);
         ConnectionPoolTest.register(suite);
         boolean success = suite.run();
         System.exit(success ? 0 : 1);

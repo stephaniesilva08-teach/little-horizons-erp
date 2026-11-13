@@ -23,6 +23,12 @@ public interface AssignmentDao {
 
     List<TeacherAssignment> findByYear(int academicYear);
 
+    /**
+     * Checks whether a teacher is assigned to a subject in the given year and
+     * section.
+     */
+    boolean hasAssignment(int idTeacher, int idSubject, int academicYear, String section);
+
     int insertSchedule(Schedule schedule);
 
     void updateSchedule(Schedule schedule);

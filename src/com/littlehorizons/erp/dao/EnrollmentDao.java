@@ -19,4 +19,12 @@ public interface EnrollmentDao {
     List<SubjectEnrollment> findAll();
 
     List<SubjectEnrollment> findByStudent(int idStudent);
+
+    /**
+     * Finds an active enrollment for a student, subject and academic year.
+     * When {@code academicPeriod} is {@code null}, any period of the year is
+     * accepted (used for final grades and attendance).
+     */
+    SubjectEnrollment findActive(int idStudent, int idSubject, int academicYear,
+                                 String academicPeriod);
 }

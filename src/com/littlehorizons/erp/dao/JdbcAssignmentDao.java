@@ -160,6 +160,27 @@ public class JdbcAssignmentDao implements AssignmentDao {
                 + "ORDER BY teacher_name, m.nombre_materia", academicYear);
     }
 
+    public boolean hasAssignment(int idTeacher, int idSubject, int academicYear,
+                                 String section) {
+        String sql = "SELECT EXISTS (SELECT 1 FROM asignaciones_profesor "
+                + "WHERE id_profesor = ? AND id_materia = ? AND año_academico = ? "
+                + "AND seccion = ?)";
+        try (Connection connection = connectionProvider.getConnection();
+             PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idTeacher);
+            ps.setInt(2, idSubject);
+            ps.setInt(3, academicYear);
+            ps.setString(4, section);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getBoolean(1);
+            }
+        } catch (SQLException e) {
+            LoggerUtil.error("Could not validate teacher assignment", e);
+            throw new DataAccessException(
+                    "No se pudo validar la asignación del profesor.", e);
+        }
+    }
+
     public int insertSchedule(Schedule schedule) {
         String sql = "INSERT INTO horarios (id_asignacion, dia_semana, hora_inicio, "
                 + "hora_fin) VALUES (?, ?, ?, ?)";

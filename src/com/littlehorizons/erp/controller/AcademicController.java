@@ -22,6 +22,7 @@ import com.littlehorizons.erp.model.TeacherAssignment;
 import com.littlehorizons.erp.util.Validator;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -56,6 +57,13 @@ public class AcademicController {
 
     public int registerGrade(AcademicRecord record) {
         validateRecord(record);
+        String period = "Final".equalsIgnoreCase(record.getAcademicPeriod())
+                ? null : record.getAcademicPeriod();
+        SubjectEnrollment enrollment = requireEnrollment(record.getIdStudent(),
+                record.getIdSubject(), record.getAcademicYear(), period,
+                "El estudiante no está inscrito en la materia para el año y período indicados.");
+        requireTeacherAssignment(record.getIdTeacher(), record.getIdSubject(),
+                record.getAcademicYear(), enrollment.getSection());
         return recordDao.insert(record);
     }
 
@@ -117,6 +125,14 @@ public class AcademicController {
 
     public int registerAttendance(Attendance attendance) {
         validateAttendance(attendance);
+        int academicYear = LocalDate.parse(attendance.getAttendanceDate()).getYear();
+        SubjectEnrollment enrollment = requireEnrollment(attendance.getIdStudent(),
+                attendance.getIdSubject(), academicYear, null,
+                "El estudiante no está inscrito en la materia para el año de la fecha indicada.");
+        if (attendance.getRegisteredBy() > 0) {
+            requireTeacherAssignment(attendance.getRegisteredBy(),
+                    attendance.getIdSubject(), academicYear, enrollment.getSection());
+        }
         return attendanceDao.insert(attendance);
     }
 
@@ -245,6 +261,29 @@ public class AcademicController {
 
     public List<SubjectEnrollment> listEnrollmentsByStudent(int idStudent) {
         return enrollmentDao.findByStudent(idStudent);
+    }
+
+    private SubjectEnrollment requireEnrollment(int idStudent, int idSubject,
+                                                int academicYear, String academicPeriod,
+                                                String message) {
+        SubjectEnrollment enrollment = enrollmentDao.findActive(idStudent, idSubject,
+                academicYear, academicPeriod);
+        if (enrollment == null) {
+            throw new IllegalArgumentException(message);
+        }
+        return enrollment;
+    }
+
+    private void requireTeacherAssignment(int idTeacher, int idSubject, int academicYear,
+                                          String section) {
+        if (section == null || section.isBlank()) {
+            throw new IllegalArgumentException(
+                    "La inscripción no tiene una sección válida para validar al profesor.");
+        }
+        if (!assignmentDao.hasAssignment(idTeacher, idSubject, academicYear, section)) {
+            throw new IllegalArgumentException(
+                    "El profesor no tiene asignada la materia en la sección del estudiante.");
+        }
     }
 
     private void validateRecord(AcademicRecord r) {
