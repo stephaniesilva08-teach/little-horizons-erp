@@ -16,6 +16,7 @@ public class Payment {
 
     
     private BigDecimal amountPaid;        
+    private BigDecimal unappliedAmount = BigDecimal.ZERO;
     private String paymentDate;           
     private String paymentMethod;         
     private String receiptNumber;         
@@ -84,6 +85,12 @@ public class Payment {
     public BigDecimal getAmountPaid() { return amountPaid; }
 
     public void setAmountPaid(BigDecimal amountPaid) { this.amountPaid = amountPaid; }
+
+    public BigDecimal getUnappliedAmount() { return unappliedAmount; }
+
+    public void setUnappliedAmount(BigDecimal unappliedAmount) {
+        this.unappliedAmount = unappliedAmount == null ? BigDecimal.ZERO : unappliedAmount;
+    }
 
     public String getPaymentDate() { return paymentDate; }
 

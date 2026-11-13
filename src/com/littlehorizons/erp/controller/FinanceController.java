@@ -143,7 +143,7 @@ public class FinanceController {
     }
 
     public void updateChargeState(int idCharge, String state) {
-        if (!Validator.isOneOf(state, "Pendiente", "Pagado", "Anulado")) {
+        if (!Validator.isOneOf(state, "Pendiente", "Anulado")) {
             throw new IllegalArgumentException("Estado del cargo inválido.");
         }
         financeDao.updateChargeState(idCharge, state);

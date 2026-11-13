@@ -378,7 +378,10 @@ CREATE TABLE pagos (
     id_acudiente INT COMMENT 'Acudiente que realizó el pago',
     id_concepto INT NOT NULL,
     monto_pagado DECIMAL(10,2) NOT NULL,
+    monto_no_aplicado DECIMAL(10,2) NOT NULL DEFAULT 0
+        COMMENT 'Crédito del pago que aún no está aplicado a un cargo',
     CHECK (monto_pagado >= 0),
+    CHECK (monto_no_aplicado >= 0 AND monto_no_aplicado <= monto_pagado),
     fecha_pago DATE NOT NULL,
     metodo_pago ENUM('Efectivo', 'Transferencia', 'Tarjeta Débito', 'Tarjeta Crédito', 'Cheque') NOT NULL,
     numero_recibo VARCHAR(50) UNIQUE,
@@ -391,6 +394,8 @@ CREATE TABLE pagos (
     FOREIGN KEY (id_concepto) REFERENCES conceptos_pago(id_concepto),
     INDEX idx_estudiante_fecha (id_estudiante, fecha_pago),
     INDEX idx_pago_cargo (id_estudiante, id_concepto, año_academico, periodo_academico),
+    INDEX idx_pago_creditos (id_estudiante, id_concepto, año_academico,
+                             periodo_academico, fecha_pago, id_pago),
     INDEX idx_concepto (id_concepto),
     INDEX idx_fecha (fecha_pago),
     INDEX idx_recibo (numero_recibo)
@@ -416,6 +421,20 @@ CREATE TABLE cargos_estudiante (
                            periodo_academico, estado, fecha_vencimiento),
     INDEX idx_vencimiento (fecha_vencimiento)
 ) ENGINE=InnoDB COMMENT='Cargos u obligaciones de pago por estudiante';
+
+-- Aplicación auditable de uno o varios pagos a uno o varios cargos.
+CREATE TABLE pagos_cargos (
+    id_aplicacion INT AUTO_INCREMENT PRIMARY KEY,
+    id_pago INT NOT NULL,
+    id_cargo INT NOT NULL,
+    monto_aplicado DECIMAL(10,2) NOT NULL,
+    fecha_aplicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pago) REFERENCES pagos(id_pago) ON DELETE RESTRICT,
+    FOREIGN KEY (id_cargo) REFERENCES cargos_estudiante(id_cargo) ON DELETE RESTRICT,
+    CHECK (monto_aplicado > 0),
+    UNIQUE KEY aplicacion_pago_cargo_unica (id_pago, id_cargo),
+    INDEX idx_aplicacion_cargo (id_cargo, id_pago)
+) ENGINE=InnoDB COMMENT='Trazabilidad del valor de cada pago aplicado a obligaciones';
 
 -- Tabla de facturas electrónicas
 CREATE TABLE facturas (
@@ -491,7 +510,9 @@ CREATE TABLE prestamos_estudiante (
     INDEX idx_recurso_estado (id_recurso, estado_prestamo),
     INDEX idx_estudiante (id_estudiante),
     INDEX idx_estado (estado_prestamo),
-    INDEX idx_fecha_devolucion (fecha_devolucion_esperada)
+    INDEX idx_fecha_devolucion (fecha_devolucion_esperada),
+    CHECK (fecha_devolucion_esperada >= fecha_prestamo),
+    CHECK (fecha_devolucion_real IS NULL OR fecha_devolucion_real >= fecha_prestamo)
 ) ENGINE=InnoDB COMMENT='Registro de préstamos de recursos a estudiantes';
 
 -- Tabla de préstamos de recursos a PROFESORES
@@ -511,7 +532,9 @@ CREATE TABLE prestamos_profesor (
     INDEX idx_recurso_estado (id_recurso, estado_prestamo),
     INDEX idx_profesor (id_profesor),
     INDEX idx_estado (estado_prestamo),
-    INDEX idx_fecha_devolucion (fecha_devolucion_esperada)
+    INDEX idx_fecha_devolucion (fecha_devolucion_esperada),
+    CHECK (fecha_devolucion_esperada >= fecha_prestamo),
+    CHECK (fecha_devolucion_real IS NULL OR fecha_devolucion_real >= fecha_prestamo)
 ) ENGINE=InnoDB COMMENT='Registro de préstamos de recursos a profesores';
 
 -- ============================================
@@ -1152,6 +1175,38 @@ INSERT INTO pagos (id_pago, id_estudiante, id_acudiente, id_concepto, monto_paga
 (29, 29, 29, 1, 500000, '2026-10-02', 'Tarjeta Crédito', 'REC-2026-00029', 2026, 'Anual', 'Pago registrado en caja'),
 (30, 30, 30, 2, 346500, '2026-10-03', 'Cheque', 'REC-2026-00030', 2026, 'I', 'Pago registrado en caja');
 
+-- Apply each seeded payment to its matching student/concept/period charges.
+-- Any excess remains as an explicit student credit in pagos.monto_no_aplicado.
+INSERT INTO pagos_cargos (id_pago, id_cargo, monto_aplicado)
+SELECT p.id_pago, c.id_cargo, LEAST(p.monto_pagado, c.monto)
+FROM pagos p
+INNER JOIN cargos_estudiante c
+    ON c.id_estudiante = p.id_estudiante
+    AND c.id_concepto = p.id_concepto
+    AND c.año_academico = p.año_academico
+    AND c.periodo_academico = p.periodo_academico
+WHERE p.monto_pagado > 0 AND c.estado <> 'Anulado';
+
+UPDATE pagos p
+LEFT JOIN (
+    SELECT id_pago, SUM(monto_aplicado) AS total_aplicado
+    FROM pagos_cargos
+    GROUP BY id_pago
+) a ON a.id_pago = p.id_pago
+SET p.monto_no_aplicado = GREATEST(p.monto_pagado - COALESCE(a.total_aplicado, 0), 0);
+
+UPDATE cargos_estudiante c
+LEFT JOIN (
+    SELECT id_cargo, SUM(monto_aplicado) AS total_aplicado
+    FROM pagos_cargos
+    GROUP BY id_cargo
+) a ON a.id_cargo = c.id_cargo
+SET c.estado = CASE
+    WHEN COALESCE(a.total_aplicado, 0) >= c.monto THEN 'Pagado'
+    ELSE 'Pendiente'
+END
+WHERE c.estado <> 'Anulado';
+
 INSERT INTO recursos (id_recurso, codigo_recurso, nombre_recurso, id_categoria, descripcion, fecha_adquisicion, ubicacion_fisica, estado_recurso) VALUES
 (1, 'REC-001', 'Libro: Cien Años de Soledad', 1, 'Recurso institucional: Libro: Cien Años de Soledad', '2024-03-01', 'Biblioteca', 'Prestado'),
 (2, 'REC-002', 'Libro: El Principito', 2, 'Recurso institucional: Libro: El Principito', '2024-03-01', 'Laboratorio 1', 'Prestado'),
@@ -1214,8 +1269,8 @@ VALUES ('recibo', 2026, 30)
 ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 30);
 
 INSERT INTO secuencias_financieras (nombre_secuencia, año, ultimo_valor)
-VALUES ('factura', 2026, 0)
-ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 0);
+VALUES ('factura', 2026, 1)
+ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 1);
 
 -- ============================================
 -- VERIFICATION
@@ -1226,6 +1281,8 @@ UNION ALL SELECT 'profesores', COUNT(*) FROM profesores
 UNION ALL SELECT 'materias', COUNT(*) FROM materias
 UNION ALL SELECT 'registros_academicos', COUNT(*) FROM registros_academicos
 UNION ALL SELECT 'pagos', COUNT(*) FROM pagos
+UNION ALL SELECT 'pagos_cargos', COUNT(*) FROM pagos_cargos
+UNION ALL SELECT 'pagos_con_credito', COUNT(*) FROM pagos WHERE monto_no_aplicado > 0
 UNION ALL SELECT 'clubes', COUNT(*) FROM clubes
 UNION ALL SELECT 'recursos', COUNT(*) FROM recursos
 UNION ALL SELECT 'secuencias_financieras', COUNT(*) FROM secuencias_financieras;

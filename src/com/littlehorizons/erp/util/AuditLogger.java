@@ -33,11 +33,12 @@ public final class AuditLogger {
     }
 
     public static synchronized void startSession(String operatorName, String roleName) {
-        operator = "actor_id:" + clean(operatorName, 40);
-        role = clean(roleName, 40);
-        if (operator.isBlank()) {
+        String cleanedOperator = clean(operatorName, 40);
+        if (cleanedOperator.isBlank()) {
             throw new IllegalArgumentException("El nombre del operador es obligatorio.");
         }
+        operator = "actor_id:" + cleanedOperator;
+        role = clean(roleName, 40);
         sessionId = UUID.randomUUID().toString();
         append("SESSION_START", "console", "SUCCESS", "", "");
     }

@@ -112,9 +112,14 @@ ejecutándolo completo. Al final, el script muestra un conteo de verificación p
 
 Si ya existe la base de datos y las tablas del ERP, no vuelva a ejecutar el script completo.
 Aplique las migraciones pendientes una sola vez y en orden: `001_system_users.sql` para
-las tablas de cuentas y `002_financial_sequences.sql` para reconciliar los consecutivos
-de recibos y facturas con documentos existentes. La segunda migración se debe ejecutar
-en el esquema `erp_little_horizons`.
+las cuentas, `002_financial_sequences.sql` para reconciliar consecutivos y
+`003_payment_charge_allocations.sql` para guardar las aplicaciones pago-cargo y convertir
+pagos históricos en asignaciones FIFO con créditos no aplicados explícitos. Ejecute las
+migraciones sobre `erp_little_horizons` con la aplicación detenida y después de respaldar
+la base de datos. Antes de `003`, concilie los cargos que se marcaron manualmente como
+`Pagado`: la migración deriva el estado de las asignaciones reconstruidas desde pagos
+registrados, por lo que un cargo marcado como pagado sin pago histórico suficiente quedará
+`Pendiente` y requiere conciliación contable previa.
 
 ### 6.2. Configuración de credenciales
 
@@ -253,6 +258,12 @@ No existen credenciales predeterminadas.
 La suite usa un runner mínimo incluido en `test/`, sin JUnit ni dependencias externas:
 
 ```bash
+mvn test
+```
+
+También se puede compilar y ejecutar directamente con el JDK:
+
+```bash
 mkdir -p out-test
 javac --release 17 -encoding UTF-8 -cp lib/mysql-connector-j-8.4.0.jar \
       -d out-test $(find src test -name "*.java")
@@ -260,9 +271,10 @@ java -cp "out-test:lib/mysql-connector-j-8.4.0.jar" com.littlehorizons.erp.test.
 ```
 
 Cubre validaciones de entrada, formato de facturas, reglas académicas, reactivación de
-membresías, identidad de entidades, atomicidad simulada de pagos/facturas, registro de
-estudiantes con DAOs en memoria y ciclo de vida del pool. En el corte auditado pasan
-42 pruebas; no requiere base de datos y no sustituye las pruebas de integración JDBC.
+membresías, identidad de entidades, asignación FIFO de pagos a cargos, créditos no
+aplicados, atomicidad simulada de pagos/facturas, registro de estudiantes con DAOs en
+memoria y ciclo de vida del pool. En el corte auditado pasan 47 pruebas; no requiere base
+de datos y no sustituye las pruebas de integración JDBC.
 
 ---
 
@@ -273,7 +285,9 @@ estudiantes con DAOs en memoria y ciclo de vida del pool. En el corte auditado p
 ```
 Little-horizons-erp/
 ├── docs/
-│   └── database.sql                 # DDL + DML (fuente de verdad del esquema)
+│   ├── database.sql                 # DDL + DML (esquema para instalaciones nuevas)
+│   ├── AUDITORIA_TECNICA.md         # Hallazgos y verificación del proyecto
+│   └── migrations/                  # Migraciones 001–003 para bases existentes
 ├── facturas/                        # Facturas .txt generadas en tiempo de ejecución
 │   └── factura_FAC-2026-00001.txt   # Muestra de factura generada
 ├── lib/
@@ -413,6 +427,10 @@ View → Controller → DAO → MySQL
 - Valores personalizados por estudiante para descuentos o becas.
 - Cargos por estudiante con vencimiento, período y estado.
 - Registro de pagos con estudiante, acudiente, concepto, monto, fecha, método y recibo.
+- Aplicación FIFO de pagos a cargos del mismo estudiante, concepto, año y período, con
+  relación persistida para auditar abonos parciales y pagos que cubren varios cargos.
+- Los excedentes se conservan como crédito no aplicado, se muestran en el historial y se
+  usan al registrar un cargo coincidente. El estado `Pagado` se deriva de las aplicaciones.
 - Consulta del historial de pagos por estudiante **o por acudiente** (hermanos).
 - Generación automática de factura `.txt` en `facturas/` y registro en la tabla
   `facturas`.
@@ -481,9 +499,8 @@ Gracias por su pago.
 - Resumen de notas por materia y período (promedio, máxima, mínima, registros).
 - Resumen de asistencia.
 - Reporte de estudiantes morosos con cargos pendientes vencidos hace más de un mes
-  (cargado, pagos aplicados por antigüedad FIFO y saldo). Como el esquema no asocia un
-  pago a un cargo concreto, este reporte distribuye los pagos agregados al cargo más
-  antiguo primero; la asignación es una regla de reporte, no una relación persistida.
+  (cargado, pagos aplicados por antigüedad FIFO y saldo), basado en asignaciones
+  `pagos_cargos` persistidas.
 - Préstamos vencidos.
 - Resumen de matrícula por grado.
 
@@ -594,6 +611,10 @@ GRADO  MATERIA                      SECCIÓN        PROMEDIO   ESTUDIANTES
   oficial del proyecto; el código Java sí está completamente en inglés.
 - Los permisos actuales separan módulos, pero todavía no filtran filas por docente, curso o
   estudiante. El sistema es una aplicación local de consola, no un servicio multiusuario web.
+- Los pagos se aplican a cargos del mismo estudiante, concepto, año y período, en orden de
+  vencimiento. Los excedentes quedan como crédito no aplicado para ese mismo grupo y se
+  aplican cuando se registra un cargo posterior. El sistema no permite anular ni borrar un
+  cargo con aplicaciones financieras; todavía no incluye reembolsos ni reversos contables.
 
 ---
 

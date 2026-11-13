@@ -257,8 +257,7 @@ public class FinanceView {
 
     private void updateChargeState() {
         int id = ConsoleUtils.readInt("ID del cargo: ");
-        String state = ConsoleUtils.readEnum("Nuevo estado", "Pendiente", "Pagado",
-                "Anulado");
+        String state = ConsoleUtils.readEnum("Nuevo estado", "Pendiente", "Anulado");
         ViewUtils.execute(() -> controller.updateChargeState(id, state),
                 "Estado del cargo actualizado.", id);
         ConsoleUtils.pause();
@@ -319,6 +318,10 @@ public class FinanceView {
         if (invoice[0] != null) {
             ConsoleUtils.printInfo("Factura: " + invoice[0].getInvoiceNumber());
             ConsoleUtils.printInfo("Archivo: " + invoice[0].getTxtPath());
+            if (payment.getUnappliedAmount().signum() > 0) {
+                ConsoleUtils.printInfo("Crédito pendiente de aplicar: "
+                        + ViewUtils.money(payment.getUnappliedAmount()));
+            }
         }
         ConsoleUtils.pause();
     }
@@ -366,13 +369,14 @@ public class FinanceView {
             ConsoleUtils.printInfo("No hay pagos para mostrar.");
             return;
         }
-        System.out.printf("%-4s %-26s %-22s %-12s %-10s %-16s%n",
-                "ID", "ESTUDIANTE", "CONCEPTO", "FECHA", "MONTO", "RECIBO");
+        System.out.printf("%-4s %-26s %-22s %-12s %-10s %-10s %-16s%n",
+                "ID", "ESTUDIANTE", "CONCEPTO", "FECHA", "MONTO", "CRÉDITO", "RECIBO");
         ViewUtils.printSeparator();
-        payments.forEach(p -> System.out.printf("%-4d %-26s %-22s %-12s %-10s %-16s%n",
+        payments.forEach(p -> System.out.printf("%-4d %-26s %-22s %-12s %-10s %-10s %-16s%n",
                 p.getIdPayment(), truncate(p.getStudentName(), 26),
                 truncate(p.getConceptName(), 22), p.getPaymentDate(),
-                ViewUtils.money(p.getAmountPaid()), p.getReceiptNumber()));
+                ViewUtils.money(p.getAmountPaid()), ViewUtils.money(p.getUnappliedAmount()),
+                p.getReceiptNumber()));
     }
 
     private void invoiceForPayment() {

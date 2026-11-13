@@ -23,6 +23,7 @@ public final class AllTests {
         AcademicControllerTest.register(suite);
         ExtracurricularControllerTest.register(suite);
         JdbcFinanceDaoTest.register(suite);
+        PaymentAllocatorTest.register(suite);
         ModelIdentityTest.register(suite);
         ConnectionPoolTest.register(suite);
         boolean success = suite.run();

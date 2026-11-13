@@ -9,14 +9,20 @@ import com.littlehorizons.erp.util.ConnectionProvider;
 import com.littlehorizons.erp.util.Database;
 import com.littlehorizons.erp.util.DataAccessException;
 import com.littlehorizons.erp.util.LoggerUtil;
+import com.littlehorizons.erp.util.PaymentAllocator;
+import com.littlehorizons.erp.util.PaymentAllocator.ChargeBalance;
+import com.littlehorizons.erp.util.PaymentAllocator.PaymentCredit;
+import com.littlehorizons.erp.util.PaymentAllocator.Result;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -54,7 +60,7 @@ public class JdbcFinanceDao implements FinanceDao {
 
     private static final String PAYMENT_SELECT =
             "SELECT p.id_pago, p.id_estudiante, p.id_acudiente, p.id_concepto, "
-            + "p.monto_pagado, p.fecha_pago, p.metodo_pago, p.numero_recibo, "
+            + "p.monto_pagado, p.monto_no_aplicado, p.fecha_pago, p.metodo_pago, p.numero_recibo, "
             + "p.año_academico, p.periodo_academico, p.notas, p.fecha_creacion, "
             + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
             + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, cp.nombre_concepto "
@@ -193,21 +199,38 @@ public class JdbcFinanceDao implements FinanceDao {
         String sql = "INSERT INTO cargos_estudiante (id_estudiante, id_concepto, "
                 + "año_academico, periodo_academico, monto, fecha_vencimiento, estado, "
                 + "observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql,
-                     Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, charge.getIdStudent());
-            ps.setInt(2, charge.getIdConcept());
-            ps.setInt(3, charge.getAcademicYear());
-            ps.setString(4, charge.getAcademicPeriod());
-            ps.setBigDecimal(5, charge.getAmount());
-            DaoSupport.setDate(ps, 6, charge.getDueDate());
-            ps.setString(7, charge.getState());
-            ps.setString(8, charge.getObservations() == null ? null : charge.getObservations());
-            ps.executeUpdate();
-            int id = DaoSupport.generatedKey(ps);
-            charge.setIdCharge(id);
-            return id;
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                lockStudentFinancialRecord(connection, charge.getIdStudent());
+                int id;
+                try (PreparedStatement ps = connection.prepareStatement(sql,
+                        Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, charge.getIdStudent());
+                    ps.setInt(2, charge.getIdConcept());
+                    ps.setInt(3, charge.getAcademicYear());
+                    ps.setString(4, charge.getAcademicPeriod());
+                    ps.setBigDecimal(5, charge.getAmount());
+                    DaoSupport.setDate(ps, 6, charge.getDueDate());
+                    ps.setString(7, charge.getState());
+                    ps.setString(8, charge.getObservations());
+                    ps.executeUpdate();
+                    id = DaoSupport.generatedKey(ps);
+                }
+                charge.setIdCharge(id);
+                applyAvailableFunds(connection, charge.getIdStudent(), charge.getIdConcept(),
+                        charge.getAcademicYear(), charge.getAcademicPeriod());
+                connection.commit();
+                return id;
+            } catch (SQLException | RuntimeException e) {
+                rollback(connection, e);
+                if (e instanceof SQLException sqlException) {
+                    throw sqlException;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         } catch (SQLException e) {
             LoggerUtil.error("Could not insert charge", e);
             throw new DataAccessException("No se pudo registrar el cargo.", e);
@@ -215,12 +238,51 @@ public class JdbcFinanceDao implements FinanceDao {
     }
 
     public void updateChargeState(int idCharge, String state) {
-        String sql = "UPDATE cargos_estudiante SET estado = ? WHERE id_cargo = ?";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, state);
-            ps.setInt(2, idCharge);
-            DaoSupport.requireUpdated(ps.executeUpdate(), "el cargo");
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                FinancialKey key = findChargeKey(connection, idCharge);
+                if (key == null) {
+                    throw new IllegalArgumentException("No se encontró el cargo.");
+                }
+                lockStudentFinancialRecord(connection, key.studentId());
+                ChargeState charge = findChargeState(connection, idCharge);
+                if (charge == null) {
+                    throw new IllegalArgumentException("No se encontró el cargo.");
+                }
+                BigDecimal applied = appliedAmount(connection, idCharge);
+                if ("Anulado".equals(state) && applied.signum() > 0) {
+                    throw new IllegalArgumentException(
+                            "No se puede anular un cargo con pagos aplicados.");
+                }
+                if ("Pagado".equals(state) && applied.compareTo(charge.amount()) < 0) {
+                    throw new IllegalArgumentException(
+                            "El cargo solo queda pagado al cubrir su saldo con pagos.");
+                }
+                if ("Pendiente".equals(state) && applied.compareTo(charge.amount()) >= 0) {
+                    throw new IllegalArgumentException(
+                            "No se puede marcar pendiente un cargo totalmente pagado.");
+                }
+                String sql = "UPDATE cargos_estudiante SET estado = ? WHERE id_cargo = ?";
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setString(1, state);
+                    ps.setInt(2, idCharge);
+                    DaoSupport.requireUpdated(ps.executeUpdate(), "el cargo");
+                }
+                if ("Pendiente".equals(state)) {
+                    applyAvailableFunds(connection, key.studentId(), key.conceptId(),
+                            key.academicYear(), key.academicPeriod());
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                rollback(connection, e);
+                if (e instanceof SQLException sqlException) {
+                    throw sqlException;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         } catch (SQLException e) {
             LoggerUtil.error("Could not update charge", e);
             throw new DataAccessException("No se pudo actualizar el cargo.", e);
@@ -264,7 +326,25 @@ public class JdbcFinanceDao implements FinanceDao {
 
     public int insertPayment(Payment payment) {
         try (Connection connection = connectionProvider.getConnection()) {
-            return insertPayment(connection, payment);
+            connection.setAutoCommit(false);
+            try {
+                lockStudentFinancialRecord(connection, payment.getIdStudent());
+                int id = insertPayment(connection, payment);
+                Result allocation = applyAvailableFunds(connection, payment.getIdStudent(),
+                        payment.getIdConcept(), payment.getAcademicYear(),
+                        payment.getAcademicPeriod());
+                payment.setUnappliedAmount(allocation.remainingCredits().get(id));
+                connection.commit();
+                return id;
+            } catch (SQLException | RuntimeException e) {
+                rollback(connection, e);
+                if (e instanceof SQLException sqlException) {
+                    throw sqlException;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
         } catch (SQLException e) {
             LoggerUtil.error("Could not insert payment", e);
             throw new DataAccessException("No se pudo registrar el pago.", e);
@@ -309,10 +389,15 @@ public class JdbcFinanceDao implements FinanceDao {
         try (Connection connection = connectionProvider.getConnection()) {
             connection.setAutoCommit(false);
             try {
+                lockStudentFinancialRecord(connection, payment.getIdStudent());
                 int year = java.time.LocalDate.now().getYear();
                 payment.setReceiptNumber(nextSequenceNumber(connection, "recibo", "REC", year));
                 String invoiceNumber = nextSequenceNumber(connection, "factura", "FAC", year);
                 int paymentId = insertPayment(connection, payment);
+                Result allocation = applyAvailableFunds(connection, payment.getIdStudent(),
+                        payment.getIdConcept(), payment.getAcademicYear(),
+                        payment.getAcademicPeriod());
+                payment.setUnappliedAmount(allocation.remainingCredits().get(paymentId));
                 Invoice invoice = invoiceFactory.apply(invoiceNumber);
                 invoice.setIdPayment(paymentId);
                 insertInvoice(connection, invoice);
@@ -443,11 +528,155 @@ public class JdbcFinanceDao implements FinanceDao {
         }
     }
 
+    private void lockStudentFinancialRecord(Connection connection, int idStudent)
+            throws SQLException {
+        String sql = "SELECT id_estudiante FROM estudiantes WHERE id_estudiante = ? FOR UPDATE";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idStudent);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Student does not exist: " + idStudent);
+                }
+            }
+        }
+    }
+
+    private FinancialKey findChargeKey(Connection connection, int idCharge)
+            throws SQLException {
+        String sql = "SELECT id_estudiante, id_concepto, año_academico, periodo_academico "
+                + "FROM cargos_estudiante WHERE id_cargo = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idCharge);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? new FinancialKey(rs.getInt("id_estudiante"),
+                        rs.getInt("id_concepto"), rs.getInt("año_academico"),
+                        rs.getString("periodo_academico")) : null;
+            }
+        }
+    }
+
+    private ChargeState findChargeState(Connection connection, int idCharge)
+            throws SQLException {
+        String sql = "SELECT monto FROM cargos_estudiante "
+                + "WHERE id_cargo = ? FOR UPDATE";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idCharge);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? new ChargeState(rs.getBigDecimal("monto")) : null;
+            }
+        }
+    }
+
+    private BigDecimal appliedAmount(Connection connection, int idCharge)
+            throws SQLException {
+        String sql = "SELECT COALESCE(SUM(monto_aplicado), 0) FROM pagos_cargos "
+                + "WHERE id_cargo = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, idCharge);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO;
+            }
+        }
+    }
+
+    private Result applyAvailableFunds(Connection connection, int idStudent, int idConcept,
+                                       int academicYear, String academicPeriod)
+            throws SQLException {
+        List<ChargeBalance> charges = new ArrayList<>();
+        String chargeSql = "SELECT c.id_cargo, c.monto, "
+                + "COALESCE(SUM(pc.monto_aplicado), 0) AS monto_aplicado "
+                + "FROM cargos_estudiante c LEFT JOIN pagos_cargos pc "
+                + "ON pc.id_cargo = c.id_cargo WHERE c.id_estudiante = ? "
+                + "AND c.id_concepto = ? AND c.año_academico = ? "
+                + "AND c.periodo_academico <=> ? AND c.estado <> 'Anulado' "
+                + "GROUP BY c.id_cargo, c.monto, c.fecha_vencimiento "
+                + "ORDER BY c.fecha_vencimiento, c.id_cargo";
+        try (PreparedStatement ps = connection.prepareStatement(chargeSql)) {
+            ps.setInt(1, idStudent);
+            ps.setInt(2, idConcept);
+            ps.setInt(3, academicYear);
+            ps.setString(4, academicPeriod);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    charges.add(new ChargeBalance(rs.getInt("id_cargo"),
+                            rs.getBigDecimal("monto"), rs.getBigDecimal("monto_aplicado")));
+                }
+            }
+        }
+
+        List<PaymentCredit> credits = new ArrayList<>();
+        String paymentSql = "SELECT id_pago, monto_no_aplicado FROM pagos "
+                + "WHERE id_estudiante = ? AND id_concepto = ? AND año_academico = ? "
+                + "AND periodo_academico <=> ? AND monto_no_aplicado > 0 "
+                + "ORDER BY fecha_pago, id_pago";
+        try (PreparedStatement ps = connection.prepareStatement(paymentSql)) {
+            ps.setInt(1, idStudent);
+            ps.setInt(2, idConcept);
+            ps.setInt(3, academicYear);
+            ps.setString(4, academicPeriod);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    credits.add(new PaymentCredit(rs.getInt("id_pago"),
+                            rs.getBigDecimal("monto_no_aplicado")));
+                }
+            }
+        }
+
+        Result result = PaymentAllocator.allocate(credits, charges);
+        String allocationSql = "INSERT INTO pagos_cargos "
+                + "(id_pago, id_cargo, monto_aplicado) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(allocationSql)) {
+            for (PaymentAllocator.Application application : result.applications()) {
+                ps.setInt(1, application.paymentId());
+                ps.setInt(2, application.chargeId());
+                ps.setBigDecimal(3, application.amount());
+                ps.addBatch();
+            }
+            if (!result.applications().isEmpty()) {
+                ps.executeBatch();
+            }
+        }
+
+        String paymentUpdateSql = "UPDATE pagos SET monto_no_aplicado = ? WHERE id_pago = ?";
+        try (PreparedStatement ps = connection.prepareStatement(paymentUpdateSql)) {
+            for (Map.Entry<Integer, BigDecimal> credit : result.remainingCredits().entrySet()) {
+                ps.setBigDecimal(1, credit.getValue());
+                ps.setInt(2, credit.getKey());
+                ps.addBatch();
+            }
+            if (!result.remainingCredits().isEmpty()) {
+                ps.executeBatch();
+            }
+        }
+
+        String chargeUpdateSql = "UPDATE cargos_estudiante SET estado = ? WHERE id_cargo = ? "
+                + "AND estado <> 'Anulado'";
+        try (PreparedStatement ps = connection.prepareStatement(chargeUpdateSql)) {
+            for (Map.Entry<Integer, BigDecimal> balance : result.remainingCharges().entrySet()) {
+                ps.setString(1, balance.getValue().signum() == 0 ? "Pagado" : "Pendiente");
+                ps.setInt(2, balance.getKey());
+                ps.addBatch();
+            }
+            if (!result.remainingCharges().isEmpty()) {
+                ps.executeBatch();
+            }
+        }
+        return result;
+    }
+
+    private void rollback(Connection connection, Throwable failure) {
+        try {
+            connection.rollback();
+        } catch (SQLException rollbackFailure) {
+            failure.addSuppressed(rollbackFailure);
+        }
+    }
+
     private int insertPayment(Connection connection, Payment p) throws SQLException {
         String sql = "INSERT INTO pagos (id_estudiante, id_acudiente, id_concepto, "
-                + "monto_pagado, fecha_pago, metodo_pago, numero_recibo, "
+                + "monto_pagado, monto_no_aplicado, fecha_pago, metodo_pago, numero_recibo, "
                 + "año_academico, periodo_academico, notas) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql,
                 Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, p.getIdStudent());
@@ -458,15 +687,17 @@ public class JdbcFinanceDao implements FinanceDao {
             }
             ps.setInt(3, p.getIdConcept());
             ps.setBigDecimal(4, p.getAmountPaid());
-            DaoSupport.setDate(ps, 5, p.getPaymentDate());
-            ps.setString(6, p.getPaymentMethod());
-            ps.setString(7, p.getReceiptNumber());
-            ps.setInt(8, p.getAcademicYear());
-            ps.setString(9, p.getAcademicPeriod());
-            ps.setString(10, p.getNotes());
+            ps.setBigDecimal(5, p.getAmountPaid());
+            DaoSupport.setDate(ps, 6, p.getPaymentDate());
+            ps.setString(7, p.getPaymentMethod());
+            ps.setString(8, p.getReceiptNumber());
+            ps.setInt(9, p.getAcademicYear());
+            ps.setString(10, p.getAcademicPeriod());
+            ps.setString(11, p.getNotes());
             ps.executeUpdate();
             int id = DaoSupport.generatedKey(ps);
             p.setIdPayment(id);
+            p.setUnappliedAmount(p.getAmountPaid());
             return id;
         }
     }
@@ -486,6 +717,11 @@ public class JdbcFinanceDao implements FinanceDao {
             invoice.setIdInvoice(DaoSupport.generatedKey(ps));
         }
     }
+
+    private record FinancialKey(int studentId, int conceptId, int academicYear,
+                                String academicPeriod) { }
+
+    private record ChargeState(BigDecimal amount) { }
 
     private List<PaymentConcept> queryConcepts(String sql) {
         List<PaymentConcept> list = new ArrayList<>();
@@ -602,6 +838,7 @@ public class JdbcFinanceDao implements FinanceDao {
         p.setIdParent(DaoSupport.getInt(rs, "id_acudiente"));
         p.setIdConcept(rs.getInt("id_concepto"));
         p.setAmountPaid(rs.getBigDecimal("monto_pagado"));
+        p.setUnappliedAmount(rs.getBigDecimal("monto_no_aplicado"));
         p.setPaymentDate(DaoSupport.getDate(rs, "fecha_pago"));
         p.setPaymentMethod(rs.getString("metodo_pago"));
         p.setReceiptNumber(rs.getString("numero_recibo"));

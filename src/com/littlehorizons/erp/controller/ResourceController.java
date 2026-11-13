@@ -163,5 +163,12 @@ public class ResourceController {
         if (loan.getLoanDate() != null && !Validator.isValidDate(loan.getLoanDate())) {
             throw new IllegalArgumentException("La fecha de préstamo es inválida.");
         }
+        LocalDate loanDate = loan.getLoanDate() == null
+                ? LocalDate.now() : LocalDate.parse(loan.getLoanDate());
+        LocalDate expectedReturnDate = LocalDate.parse(loan.getExpectedReturnDate());
+        if (expectedReturnDate.isBefore(loanDate)) {
+            throw new IllegalArgumentException(
+                    "La fecha de devolución debe ser igual o posterior al préstamo.");
+        }
     }
 }

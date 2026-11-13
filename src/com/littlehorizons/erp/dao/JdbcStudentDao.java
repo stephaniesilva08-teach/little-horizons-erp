@@ -178,10 +178,11 @@ public class JdbcStudentDao implements StudentDao {
     }
 
     public List<Student> search(String text) {
-        String sql = "SELECT " + COLUMNS + " FROM estudiantes WHERE numero_documento LIKE ? "
-                + "OR primer_nombre LIKE ? OR primer_apellido LIKE ? "
+        String sql = "SELECT " + COLUMNS + " FROM estudiantes WHERE numero_documento LIKE ? ESCAPE '!' "
+                + "OR primer_nombre LIKE ? ESCAPE '!' OR primer_apellido LIKE ? ESCAPE '!' "
                 + "ORDER BY primer_apellido, primer_nombre";
-        String pattern = "%" + text + "%";
+        String escapedText = text.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+        String pattern = "%" + escapedText + "%";
         return queryList(sql, new String[]{pattern, pattern, pattern});
     }
 

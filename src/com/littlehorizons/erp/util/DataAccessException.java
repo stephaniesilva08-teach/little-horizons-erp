@@ -7,6 +7,8 @@ import java.sql.SQLException;
  */
 public class DataAccessException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     private final String operationMessage;
 
     public DataAccessException(String message, Throwable cause) {
