@@ -5,7 +5,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.text.Normalizer;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -39,13 +41,13 @@ public final class AuditLogger {
     }
 
     public static synchronized void setScreen(String screenName) {
-        screen = clean(screenName, 100);
+        screen = screenCode(screenName);
     }
 
     public static synchronized void recordScreenOpened(String screenName) {
-        screen = clean(screenName, 100);
+        screen = screenCode(screenName);
         if (!sessionId.isBlank()) {
-            append("SCREEN_OPENED", screen, "OPENED", "", "");
+            append("SCREEN_OPENED", "open_" + screen, "OPENED", "", "");
         }
     }
 
@@ -73,14 +75,14 @@ public final class AuditLogger {
     }
 
     public static synchronized void beginAction(String action, Integer recordId) {
-        append("ACTION_STARTED", clean(action, 120), "STARTED",
+        append("ACTION_STARTED", actionCode(action), "STARTED",
                 recordId == null ? "" : recordId.toString(), "");
     }
 
     public static synchronized void completeAction(String action, Integer recordId,
                                                     boolean succeeded,
                                                     String errorType) {
-        append("ACTION_COMPLETED", clean(action, 120),
+        append("ACTION_COMPLETED", actionCode(action),
                 succeeded ? "SUCCESS" : "FAILURE",
                 recordId == null ? "" : recordId.toString(),
                 succeeded ? "" : clean(errorType, 80));
@@ -116,6 +118,61 @@ public final class AuditLogger {
         String clean = value.replaceAll("[\\p{Cc}\\p{Cf}|=]", " ").trim();
         return clean.length() > maxLength
                 ? clean.substring(0, maxLength) : clean;
+    }
+
+    private static String screenCode(String screenName) {
+        String value = normalize(screenName);
+        if (value.contains("inicio de sesion") || value.contains("configuracion inicial")) {
+            return "authentication";
+        }
+        if (value.contains("reporte") || value.contains("boletin")
+                || value.contains("promedio por curso") || value.contains("prestamos vencidos")) {
+            return "reports";
+        }
+        if (value.contains("estudiante")) return "students";
+        if (value.contains("acudiente")) return "guardians";
+        if (value.contains("profesor")) return "teachers";
+        if (value.contains("materia") || value.contains("inscripcion")) return "subjects";
+        if (value.contains("matricula")) return "enrollments";
+        if (value.contains("academ") || value.contains("nota") || value.contains("asistencia")
+                || value.contains("horario") || value.contains("asignacion")) return "academic";
+        if (value.contains("club") || value.contains("evento") || value.contains("membresia")
+                || value.contains("participante") || value.contains("extracurricular")) {
+            return "extracurricular";
+        }
+        if (value.contains("pago") || value.contains("factura") || value.contains("cargo")
+                || value.contains("concepto") || value.contains("financiero")
+                || value.contains("valor personalizado")) return "finance";
+        if (value.contains("recurso") || value.contains("prestamo")
+                || value.contains("categoria")) return "resources";
+        if (value.contains("cuenta") || value.contains("administracion")) return "user_admin";
+        return "console";
+    }
+
+    private static String actionCode(String action) {
+        String value = normalize(action);
+        if (value.contains("pago")) return "register_payment";
+        if (value.contains("devolucion")) return "return_resource";
+        if (value.contains("asociad")) return "associate_record";
+        if (value.contains("restablecid")) return "reset_credential";
+        if (value.contains("reactivad")) return "activate_account";
+        if (value.contains("desactivad") || value.contains("eliminad")
+                || value.contains("retirad")) return "deactivate_record";
+        if (value.contains("actualizad") || value.contains("actualizar")) {
+            return "update_record";
+        }
+        if (value.contains("cread") || value.contains("registrad")
+                || value.contains("crea")) return "create_record";
+        return "console_operation";
+    }
+
+    private static String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private static void restrictPermissions() {

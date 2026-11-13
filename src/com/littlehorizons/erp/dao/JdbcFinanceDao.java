@@ -329,7 +329,7 @@ public class JdbcFinanceDao implements FinanceDao {
                 return String.format("%s-%d-%05d", prefix, year, next);
             }
         } catch (SQLException e) {
-            LoggerUtil.error("Could not build " + label + " number", e);
+            LoggerUtil.error("Could not build financial sequence number", e);
             throw new DataAccessException(
                     "No se pudo generar el número de " + label + ".", e);
         }

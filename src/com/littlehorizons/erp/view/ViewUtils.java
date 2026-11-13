@@ -27,7 +27,7 @@ public final class ViewUtils {
             AuditLogger.completeAction(successPrefix, null, false,
                     e.getClass().getSimpleName());
             ConsoleUtils.printError(e.getMessage());
-            LoggerUtil.warn("Validation/business error: " + e.getMessage());
+            LoggerUtil.warn("Business validation failed: " + e.getClass().getSimpleName());
             return;
         } catch (RuntimeException e) {
             AuditLogger.completeAction(successPrefix, null, false,
@@ -52,7 +52,7 @@ public final class ViewUtils {
             AuditLogger.completeAction(auditAction, recordId, false,
                     e.getClass().getSimpleName());
             ConsoleUtils.printError(e.getMessage());
-            LoggerUtil.warn("Validation/business error: " + e.getMessage());
+            LoggerUtil.warn("Business validation failed: " + e.getClass().getSimpleName());
             return;
         } catch (RuntimeException e) {
             AuditLogger.completeAction(auditAction, recordId, false,

@@ -2,8 +2,6 @@ package com.littlehorizons.erp.util;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -35,12 +33,22 @@ public final class LoggerUtil {
     }
 
     public static void error(String message, Throwable throwable) {
-        String detail = throwable == null ? "" : " - Cause: " + throwable.getMessage();
+        String detail = throwable == null ? ""
+                : " - Exception type: " + throwable.getClass().getName();
         log("ERROR", sanitize(message + detail));
         if (throwable != null) {
-            StringWriter writer = new StringWriter();
-            throwable.printStackTrace(new PrintWriter(writer));
-            log("ERROR", writer.toString().stripTrailing());
+            StringBuilder trace = new StringBuilder("Stack frames:");
+            for (StackTraceElement frame : throwable.getStackTrace()) {
+                trace.append(" at ").append(frame);
+            }
+            Throwable cause = throwable.getCause();
+            if (cause != null && cause != throwable) {
+                trace.append(" | Cause type: ").append(cause.getClass().getName());
+                for (StackTraceElement frame : cause.getStackTrace()) {
+                    trace.append(" at ").append(frame);
+                }
+            }
+            log("ERROR", sanitize(trace.toString()));
         }
     }
 

@@ -489,9 +489,10 @@ Gracias por su pago.
 - Implementado en `util/LoggerUtil.java`.
 - Archivo: **`error_log.txt`** en el directorio de ejecución.
 - Niveles: `INFO`, `WARN`, `DEBUG`, `ERROR`.
-- Cada entrada incluye fecha/hora, nivel y mensaje. Los errores incluyen la traza
-  completa de la excepción, escrita en el archivo (no se imprime la traza en consola).
-- Las operaciones de consola se registran aparte en **`audit_log.txt`**. La bitácora
+- Cada entrada incluye fecha/hora, nivel y mensaje. Los errores registran el tipo de
+  excepción y sus marcos de pila, sin incluir textos de usuario ni contraseñas.
+- Los mensajes de consola se muestran en español. Los archivos técnicos `error_log.txt`
+  y `audit_log.txt` se escriben en inglés. La bitácora de acciones
   identifica cada sesión con el nombre de usuario autenticado. Registra la selección de
   menús y el inicio y resultado de las operaciones, con
   fecha, sesión, pantalla, acción, resultado e ID cuando está disponible. No se guardan
