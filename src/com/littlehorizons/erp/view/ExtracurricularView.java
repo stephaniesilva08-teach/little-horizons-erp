@@ -128,9 +128,10 @@ public class ExtracurricularView {
             System.out.println("  3. Listar clubes de un estudiante");
             System.out.println("  4. Inscribir estudiante en club");
             System.out.println("  5. Retirar estudiante de club");
-            System.out.println("  6. Eliminar membresía");
+            System.out.println("  6. Reactivar membresía");
+            System.out.println("  7. Eliminar membresía");
             System.out.println("  0. Volver");
-            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 6);
+            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 7);
             switch (option) {
                 case 1 -> printMemberships(ViewUtils.query("list_club_memberships",
                         controller::listAllMemberships));
@@ -138,7 +139,8 @@ public class ExtracurricularView {
                 case 3 -> { }
                 case 4 -> enrollInClub();
                 case 5 -> withdrawFromClub();
-                case 6 -> deleteMembership();
+                case 6 -> reactivateMembership();
+                case 7 -> deleteMembership();
                 case 0 -> back = true;
                 default -> { }
             }
@@ -186,6 +188,15 @@ public class ExtracurricularView {
         m.setWithdrawalReason(ConsoleUtils.readNonEmpty("Motivo del retiro: "));
         ViewUtils.execute(() -> controller.withdrawFromClub(m),
                 "Retiro registrado correctamente.", m.getIdMembership());
+        ConsoleUtils.pause();
+    }
+
+    private void reactivateMembership() {
+        Membership m = new Membership();
+        m.setIdMembership(ConsoleUtils.readInt("ID de la membresía: "));
+        m.setEntryDate(ConsoleUtils.readDate("Nueva fecha de ingreso (YYYY-MM-DD): "));
+        ViewUtils.execute(() -> controller.reactivateMembership(m),
+                "Membresía reactivada correctamente.", m.getIdMembership());
         ConsoleUtils.pause();
     }
 

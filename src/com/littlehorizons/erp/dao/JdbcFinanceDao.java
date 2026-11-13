@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Data access object for the financial module.
@@ -45,8 +46,8 @@ public class JdbcFinanceDao implements FinanceDao {
             "SELECT c.id_cargo, c.id_estudiante, c.id_concepto, c.año_academico, "
             + "c.periodo_academico, c.monto, c.fecha_vencimiento, c.estado, "
             + "c.observaciones, c.fecha_creacion, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, cp.nombre_concepto "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, cp.nombre_concepto "
             + "FROM cargos_estudiante c "
             + "INNER JOIN estudiantes e ON e.id_estudiante = c.id_estudiante "
             + "INNER JOIN conceptos_pago cp ON cp.id_concepto = c.id_concepto ";
@@ -55,8 +56,8 @@ public class JdbcFinanceDao implements FinanceDao {
             "SELECT p.id_pago, p.id_estudiante, p.id_acudiente, p.id_concepto, "
             + "p.monto_pagado, p.fecha_pago, p.metodo_pago, p.numero_recibo, "
             + "p.año_academico, p.periodo_academico, p.notas, p.fecha_creacion, "
-            + "CONCAT_WS(' ', e.primer_nombre, e.segundo_nombre, e.primer_apellido, "
-            + "e.segundo_apellido) AS student_name, cp.nombre_concepto "
+            + "CONCAT_WS(' ', NULLIF(TRIM(e.primer_nombre), ''), NULLIF(TRIM(e.segundo_nombre), ''), NULLIF(TRIM(e.primer_apellido), ''), "
+            + "NULLIF(TRIM(e.segundo_apellido), '')) AS student_name, cp.nombre_concepto "
             + "FROM pagos p "
             + "INNER JOIN estudiantes e ON e.id_estudiante = p.id_estudiante "
             + "INNER JOIN conceptos_pago cp ON cp.id_concepto = p.id_concepto ";
@@ -101,7 +102,7 @@ public class JdbcFinanceDao implements FinanceDao {
             ps.setBoolean(5, concept.isRecurring());
             ps.setBoolean(6, concept.isActive());
             ps.setInt(7, concept.getIdConcept());
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el concepto de pago");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update payment concept", e);
             throw new DataAccessException("No se pudo actualizar el concepto de pago.", e);
@@ -219,7 +220,7 @@ public class JdbcFinanceDao implements FinanceDao {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, state);
             ps.setInt(2, idCharge);
-            ps.executeUpdate();
+            DaoSupport.requireUpdated(ps.executeUpdate(), "el cargo");
         } catch (SQLException e) {
             LoggerUtil.error("Could not update charge", e);
             throw new DataAccessException("No se pudo actualizar el cargo.", e);
@@ -298,53 +299,21 @@ public class JdbcFinanceDao implements FinanceDao {
                 + "ORDER BY p.fecha_pago DESC", idParent);
     }
 
-    public String nextReceiptNumber() {
-        return nextSequenceNumber("recibo", "REC", "recibo");
-    }
-
-    public String nextInvoiceNumber() {
-        return nextSequenceNumber("factura", "FAC", "factura");
-    }
-
     /**
-     * Reserves the next value of an annual sequence. The increment and the read
-     * happen on the same connection using LAST_INSERT_ID(expr), so concurrent
-     * callers cannot obtain the same number.
-     */
-    private String nextSequenceNumber(String sequenceName, String prefix,
-                                      String label) {
-        int year = java.time.LocalDate.now().getYear();
-        String sql = "INSERT INTO secuencias_financieras "
-                + "(nombre_secuencia, año, ultimo_valor) VALUES (?, ?, LAST_INSERT_ID(1)) "
-                + "ON DUPLICATE KEY UPDATE ultimo_valor = LAST_INSERT_ID(ultimo_valor + 1)";
-        try (Connection connection = connectionProvider.getConnection();
-             PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, sequenceName);
-            ps.setInt(2, year);
-            ps.executeUpdate();
-            try (PreparedStatement last = connection.prepareStatement(
-                    "SELECT LAST_INSERT_ID()");
-                 ResultSet rs = last.executeQuery()) {
-                int next = rs.next() ? rs.getInt(1) : 1;
-                return String.format("%s-%d-%05d", prefix, year, next);
-            }
-        } catch (SQLException e) {
-            LoggerUtil.error("Could not build financial sequence number", e);
-            throw new DataAccessException(
-                    "No se pudo generar el número de " + label + ".", e);
-        }
-    }
-
-    /**
-     * Inserts a payment and its invoice atomically.
+     * Reserves both numbers and inserts a payment and its invoice atomically.
      *
      * @return the generated payment id.
      */
-    public int registerPaymentWithInvoice(Payment payment, Invoice invoice) {
+    public int registerPaymentWithInvoice(Payment payment,
+                                          Function<String, Invoice> invoiceFactory) {
         try (Connection connection = connectionProvider.getConnection()) {
             connection.setAutoCommit(false);
             try {
+                int year = java.time.LocalDate.now().getYear();
+                payment.setReceiptNumber(nextSequenceNumber(connection, "recibo", "REC", year));
+                String invoiceNumber = nextSequenceNumber(connection, "factura", "FAC", year);
                 int paymentId = insertPayment(connection, payment);
+                Invoice invoice = invoiceFactory.apply(invoiceNumber);
                 invoice.setIdPayment(paymentId);
                 insertInvoice(connection, invoice);
                 connection.commit();
@@ -365,6 +334,56 @@ public class JdbcFinanceDao implements FinanceDao {
         } catch (SQLException e) {
             LoggerUtil.error("Transaction failed", e);
             throw new DataAccessException("No se pudo completar la transacción.", e);
+        }
+    }
+
+    public int insertInvoiceWithSequence(Function<String, Invoice> invoiceFactory) {
+        try (Connection connection = connectionProvider.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int year = java.time.LocalDate.now().getYear();
+                String number = nextSequenceNumber(connection, "factura", "FAC", year);
+                Invoice invoice = invoiceFactory.apply(number);
+                insertInvoice(connection, invoice);
+                connection.commit();
+                return invoice.getIdInvoice();
+            } catch (SQLException | RuntimeException e) {
+                connection.rollback();
+                if (e instanceof SQLException) {
+                    throw (SQLException) e;
+                }
+                throw e;
+            } finally {
+                connection.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            LoggerUtil.error("Could not register invoice with sequence", e);
+            throw new DataAccessException("No se pudo registrar la factura.", e);
+        }
+    }
+
+    private String nextSequenceNumber(Connection connection, String sequenceName,
+                                      String prefix, int year) throws SQLException {
+        String incrementSql = "INSERT INTO secuencias_financieras "
+                + "(nombre_secuencia, año, ultimo_valor) VALUES (?, ?, 1) "
+                + "ON DUPLICATE KEY UPDATE ultimo_valor = ultimo_valor + 1";
+        try (PreparedStatement ps = connection.prepareStatement(incrementSql)) {
+            ps.setString(1, sequenceName);
+            ps.setInt(2, year);
+            ps.executeUpdate();
+        }
+        String selectSql = "SELECT ultimo_valor FROM secuencias_financieras "
+                + "WHERE nombre_secuencia = ? AND año = ? FOR UPDATE";
+        try (PreparedStatement ps = connection.prepareStatement(selectSql)) {
+            ps.setString(1, sequenceName);
+            ps.setInt(2, year);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Financial sequence row was not created");
+                }
+                return String.format("%s-%d-%05d", prefix, year,
+                        rs.getInt("ultimo_valor"));
+            }
         }
     }
 

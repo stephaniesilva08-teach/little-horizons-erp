@@ -23,8 +23,14 @@ public interface ClubDao {
 
     int insertMembership(Membership membership);
 
-
     void updateMembership(Membership membership);
+
+    /**
+     * Reactivates a withdrawn membership after checking the club capacity.
+     */
+    void reactivateMembership(Membership membership);
+
+    Membership findMembershipByStudentAndClub(int idStudent, int idClub);
 
     boolean deleteMembership(int idMembership);
 

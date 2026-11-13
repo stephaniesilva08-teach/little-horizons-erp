@@ -8,6 +8,7 @@ import com.littlehorizons.erp.model.StudentConcept;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Persistence contract for the financial module.
@@ -52,11 +53,9 @@ public interface FinanceDao {
 
     List<Payment> findPaymentsByGuardian(int idParent);
 
-    String nextReceiptNumber();
+    int registerPaymentWithInvoice(Payment payment, Function<String, Invoice> invoiceFactory);
 
-    String nextInvoiceNumber();
-
-    int registerPaymentWithInvoice(Payment payment, Invoice invoice);
+    int insertInvoiceWithSequence(Function<String, Invoice> invoiceFactory);
 
     int insertInvoice(Invoice invoice);
 

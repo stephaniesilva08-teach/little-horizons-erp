@@ -261,7 +261,8 @@ CREATE TABLE asistencias (
     UNIQUE KEY asistencia_unica (id_estudiante, id_materia, fecha_asistencia),
     INDEX idx_estudiante_fecha (id_estudiante, fecha_asistencia),
     INDEX idx_materia_fecha (id_materia, fecha_asistencia),
-    INDEX idx_estado (estado_asistencia)
+    INDEX idx_estado (estado_asistencia),
+    INDEX idx_estado_fecha_estudiante (estado_asistencia, fecha_asistencia, id_estudiante)
 ) ENGINE=InnoDB COMMENT='Registro de asistencia diaria de estudiantes';
 
 -- ============================================
@@ -1213,8 +1214,8 @@ VALUES ('recibo', 2026, 30)
 ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 30);
 
 INSERT INTO secuencias_financieras (nombre_secuencia, año, ultimo_valor)
-VALUES ('factura', 2026, 1)
-ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 1);
+VALUES ('factura', 2026, 0)
+ON DUPLICATE KEY UPDATE ultimo_valor = GREATEST(ultimo_valor, 0);
 
 -- ============================================
 -- VERIFICATION

@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Business rules for the financial module, including invoice generation.
@@ -166,21 +167,20 @@ public class FinanceController {
         if (student == null) {
             throw new IllegalArgumentException("El estudiante no existe.");
         }
-        payment.setReceiptNumber(financeDao.nextReceiptNumber());
-        String invoiceNumber = financeDao.nextInvoiceNumber();
-        TextInvoiceGenerator.GeneratedInvoice generated =
-                TextInvoiceGenerator.generate(invoiceNumber, student.getFullName(),
-                        guardian == null ? "No registrado" : guardian.getFullName(),
-                        guardian == null ? "N/A" : guardian.getDocumentNumber(),
-                        guardian == null || !Validator.isNotEmpty(guardian.getAddress())
-                                ? "No registrada" : guardian.getAddress(),
-                        concept.getConceptCode(), concept.getName(), 1,
-                        payment.getAmountPaid());
-        Invoice invoice = buildInvoice(invoiceNumber, generated, payment.getIdPayment());
+        AtomicReference<TextInvoiceGenerator.GeneratedInvoice> generatedRef =
+                new AtomicReference<>();
         try {
-            financeDao.registerPaymentWithInvoice(payment, invoice);
+            financeDao.registerPaymentWithInvoice(payment, invoiceNumber -> {
+                TextInvoiceGenerator.GeneratedInvoice generated = createInvoiceFile(
+                        invoiceNumber, payment, student, guardian, concept);
+                generatedRef.set(generated);
+                return buildInvoice(invoiceNumber, generated, payment.getIdPayment());
+            });
         } catch (RuntimeException e) {
-            deleteInvoiceFile(generated.fullPath());
+            TextInvoiceGenerator.GeneratedInvoice generated = generatedRef.get();
+            if (generated != null) {
+                deleteInvoiceFile(generated.fullPath());
+            }
             throw e;
         }
         return financeDao.findInvoiceByPayment(payment.getIdPayment());
@@ -195,20 +195,20 @@ public class FinanceController {
         if (concept == null) {
             throw new IllegalArgumentException("El concepto de pago no existe.");
         }
-        String invoiceNumber = financeDao.nextInvoiceNumber();
-        TextInvoiceGenerator.GeneratedInvoice generated =
-                TextInvoiceGenerator.generate(invoiceNumber, student.getFullName(),
-                        guardian == null ? "No registrado" : guardian.getFullName(),
-                        guardian == null ? "N/A" : guardian.getDocumentNumber(),
-                        guardian == null || !Validator.isNotEmpty(guardian.getAddress())
-                                ? "No registrada" : guardian.getAddress(),
-                        concept.getConceptCode(), concept.getName(), 1,
-                        payment.getAmountPaid());
-        Invoice invoice = buildInvoice(invoiceNumber, generated, payment.getIdPayment());
+        AtomicReference<TextInvoiceGenerator.GeneratedInvoice> generatedRef =
+                new AtomicReference<>();
         try {
-            financeDao.insertInvoice(invoice);
+            financeDao.insertInvoiceWithSequence(invoiceNumber -> {
+                TextInvoiceGenerator.GeneratedInvoice generated = createInvoiceFile(
+                        invoiceNumber, payment, student, guardian, concept);
+                generatedRef.set(generated);
+                return buildInvoice(invoiceNumber, generated, payment.getIdPayment());
+            });
         } catch (RuntimeException e) {
-            deleteInvoiceFile(generated.fullPath());
+            TextInvoiceGenerator.GeneratedInvoice generated = generatedRef.get();
+            if (generated != null) {
+                deleteInvoiceFile(generated.fullPath());
+            }
             throw e;
         }
         return financeDao.findInvoiceByPayment(payment.getIdPayment());
@@ -241,8 +241,15 @@ public class FinanceController {
         return financeDao.findInvoiceByPayment(idPayment);
     }
 
-    public String nextReceiptNumber() {
-        return financeDao.nextReceiptNumber();
+    private TextInvoiceGenerator.GeneratedInvoice createInvoiceFile(
+            String invoiceNumber, Payment payment, Student student, Parent guardian,
+            PaymentConcept concept) {
+        return TextInvoiceGenerator.generate(invoiceNumber, student.getFullName(),
+                guardian == null ? "No registrado" : guardian.getFullName(),
+                guardian == null ? "N/A" : guardian.getDocumentNumber(),
+                guardian == null || !Validator.isNotEmpty(guardian.getAddress())
+                        ? "No registrada" : guardian.getAddress(),
+                concept.getConceptCode(), concept.getName(), 1, payment.getAmountPaid());
     }
 
     private void deleteInvoiceFile(String fullPath) {

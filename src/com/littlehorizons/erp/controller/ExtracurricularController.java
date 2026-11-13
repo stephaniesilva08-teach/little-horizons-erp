@@ -74,8 +74,51 @@ public class ExtracurricularController {
         if (!club.isActive()) {
             throw new IllegalArgumentException("El club no está activo.");
         }
+        Membership existing = clubDao.findMembershipByStudentAndClub(
+                membership.getIdStudent(), membership.getIdClub());
+        if (existing != null) {
+            if ("Activa".equalsIgnoreCase(existing.getState())) {
+                throw new IllegalArgumentException(
+                        "El estudiante ya está inscrito en este club.");
+            }
+            throw new IllegalArgumentException("El estudiante ya tuvo una membresía retirada "
+                    + "en este club (ID " + existing.getIdMembership()
+                    + "). Use la opción de reactivación.");
+        }
         membership.setState("Activa");
         return clubDao.insertMembership(membership);
+    }
+
+    public void reactivateMembership(Membership membership) {
+        if (membership.getIdMembership() <= 0) {
+            throw new IllegalArgumentException("Falta el identificador de la membresía.");
+        }
+        if (!Validator.isValidDate(membership.getEntryDate())) {
+            throw new IllegalArgumentException("La fecha de ingreso es inválida.");
+        }
+        Membership existing = clubDao.findMembershipById(membership.getIdMembership());
+        if (existing == null) {
+            throw new IllegalArgumentException("La membresía no existe.");
+        }
+        if ("Activa".equalsIgnoreCase(existing.getState())) {
+            throw new IllegalArgumentException("La membresía ya está activa.");
+        }
+        Club club = clubDao.findById(existing.getIdClub());
+        if (club == null) {
+            throw new IllegalArgumentException("El club no existe.");
+        }
+        if (!club.isActive()) {
+            throw new IllegalArgumentException("El club no está activo.");
+        }
+        if (clubDao.countActiveMembers(existing.getIdClub()) >= club.getMaxCapacity()) {
+            throw new IllegalArgumentException("El club alcanzó su capacidad máxima ("
+                    + club.getMaxCapacity() + ").");
+        }
+        membership.setIdClub(existing.getIdClub());
+        membership.setIdStudent(existing.getIdStudent());
+        membership.setState("Activa");
+        membership.setWithdrawalReason(null);
+        clubDao.reactivateMembership(membership);
     }
 
     public void withdrawFromClub(Membership membership) {
