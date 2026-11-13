@@ -90,7 +90,7 @@ public class SubjectView {
         }
         readSubject(subject);
         ViewUtils.execute(() -> controller.update(subject),
-                "Materia actualizada correctamente.");
+                "Materia actualizada correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -101,7 +101,7 @@ public class SubjectView {
             ConsoleUtils.printError("La materia no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Materia eliminada correctamente.");
+                    "Materia eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }

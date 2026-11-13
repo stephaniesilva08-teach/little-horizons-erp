@@ -132,7 +132,7 @@ public class ResourceView {
         listCategoryOptions();
         readResource(resource);
         ViewUtils.execute(() -> controller.updateResource(resource),
-                "Recurso actualizado correctamente.");
+                "Recurso actualizado correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -159,7 +159,7 @@ public class ResourceView {
         int id = ConsoleUtils.readInt("ID del recurso: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeResource(id),
-                    "Recurso eliminado correctamente.");
+                    "Recurso eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -239,14 +239,14 @@ public class ResourceView {
     private void returnStudentLoan() {
         int id = ConsoleUtils.readInt("ID del préstamo: ");
         ViewUtils.execute(() -> controller.returnStudentLoan(id),
-                "Devolución registrada correctamente.");
+                "Devolución registrada correctamente.", id);
         ConsoleUtils.pause();
     }
 
     private void returnTeacherLoan() {
         int id = ConsoleUtils.readInt("ID del préstamo: ");
         ViewUtils.execute(() -> controller.returnTeacherLoan(id),
-                "Devolución registrada correctamente.");
+                "Devolución registrada correctamente.", id);
         ConsoleUtils.pause();
     }
 

@@ -88,7 +88,7 @@ public class ParentView {
         }
         readParent(parent);
         ViewUtils.execute(() -> controller.update(parent),
-                "Acudiente actualizado correctamente.");
+                "Acudiente actualizado correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -99,7 +99,7 @@ public class ParentView {
             ConsoleUtils.printError("El acudiente no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Acudiente eliminado correctamente.");
+                    "Acudiente eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }

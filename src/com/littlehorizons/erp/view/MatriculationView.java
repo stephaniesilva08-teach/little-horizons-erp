@@ -92,7 +92,7 @@ public class MatriculationView {
         }
         readMatriculation(m);
         ViewUtils.execute(() -> controller.update(m),
-                "Matrícula actualizada correctamente.");
+                "Matrícula actualizada correctamente.", m.getIdMatriculation());
         ConsoleUtils.pause();
     }
 
@@ -103,7 +103,7 @@ public class MatriculationView {
             ConsoleUtils.printError("La matrícula no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Matrícula eliminada correctamente.");
+                    "Matrícula eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }

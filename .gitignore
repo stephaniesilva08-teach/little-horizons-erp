@@ -10,6 +10,7 @@ build/
 
 # Runtime logs
 error_log.txt
+audit_log.txt
 logs/
 *.log
 

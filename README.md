@@ -481,6 +481,13 @@ Gracias por su pago.
 - Niveles: `INFO`, `WARN`, `DEBUG`, `ERROR`.
 - Cada entrada incluye fecha/hora, nivel y mensaje. Los errores incluyen la traza
   completa de la excepción, escrita en el archivo (no se imprime la traza en consola).
+- Las operaciones de consola se registran aparte en **`audit_log.txt`**. Al iniciar,
+  se solicita el nombre del operador para identificar esa sesión; esta etiqueta no es
+  una autenticación y se reemplazará por la identidad validada al implementar usuarios.
+  Se registran la selección de menús y el inicio y resultado de las operaciones, con
+  fecha, sesión, pantalla, acción, resultado e ID cuando está disponible. No se guardan
+  los valores personales introducidos en los formularios. En sistemas POSIX el archivo
+  queda legible solo por el propietario.
 
 ### Estrategia de excepciones
 
@@ -496,7 +503,8 @@ Gracias por su pago.
   `autoCommit = true`.
 - Si la entrada estándar se cierra (`Ctrl-D`), `ConsoleUtils.readLine` finaliza la
   aplicación de forma ordenada en lugar de entrar en un bucle.
-- Los errores de conexión al inicio muestran la URL configurada y recomendaciones.
+- Los errores de conexión al inicio no muestran la URL ni las credenciales; registran
+  únicamente SQLState y código del proveedor.
 
 ---
 

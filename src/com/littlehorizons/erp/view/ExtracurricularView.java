@@ -95,7 +95,7 @@ public class ExtracurricularView {
         }
         readClub(club);
         ViewUtils.execute(() -> controller.updateClub(club),
-                "Club actualizado correctamente.");
+                "Club actualizado correctamente.", club.getIdClub());
         ConsoleUtils.pause();
     }
 
@@ -113,7 +113,7 @@ public class ExtracurricularView {
         int id = ConsoleUtils.readInt("ID del club: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeClub(id),
-                    "Club eliminado correctamente.");
+                    "Club eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -183,7 +183,7 @@ public class ExtracurricularView {
         m.setIdMembership(ConsoleUtils.readInt("ID de la membresía: "));
         m.setWithdrawalReason(ConsoleUtils.readNonEmpty("Motivo del retiro: "));
         ViewUtils.execute(() -> controller.withdrawFromClub(m),
-                "Retiro registrado correctamente.");
+                "Retiro registrado correctamente.", m.getIdMembership());
         ConsoleUtils.pause();
     }
 
@@ -191,7 +191,7 @@ public class ExtracurricularView {
         int id = ConsoleUtils.readInt("ID de la membresía: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeMembership(id),
-                    "Membresía eliminada correctamente.");
+                    "Membresía eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -252,7 +252,7 @@ public class ExtracurricularView {
         }
         readEvent(event);
         ViewUtils.execute(() -> controller.updateEvent(event),
-                "Evento actualizado correctamente.");
+                "Evento actualizado correctamente.", event.getIdEvent());
         ConsoleUtils.pause();
     }
 
@@ -274,7 +274,7 @@ public class ExtracurricularView {
         int id = ConsoleUtils.readInt("ID del evento: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeEvent(id),
-                    "Evento eliminado correctamente.");
+                    "Evento eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -345,7 +345,7 @@ public class ExtracurricularView {
         int id = ConsoleUtils.readInt("ID de la participación: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeParticipant(id),
-                    "Participante eliminado correctamente.");
+                    "Participante eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }

@@ -1,5 +1,6 @@
 package com.littlehorizons.erp.view;
 
+import com.littlehorizons.erp.util.AuditLogger;
 import com.littlehorizons.erp.util.ConsoleUtils;
 import com.littlehorizons.erp.util.DataAccessException;
 import com.littlehorizons.erp.util.LoggerUtil;
@@ -18,24 +19,49 @@ public final class ViewUtils {
 
     public static void executeWithId(java.util.function.IntSupplier action,
                                      String successPrefix) {
+        AuditLogger.beginAction(successPrefix);
+        int id;
         try {
-            int id = action.getAsInt();
-            ConsoleUtils.printSuccess(successPrefix + " ID " + id + ".");
+            id = action.getAsInt();
         } catch (IllegalArgumentException | DataAccessException e) {
+            AuditLogger.completeAction(successPrefix, null, false,
+                    e.getClass().getSimpleName());
             ConsoleUtils.printError(e.getMessage());
             LoggerUtil.warn("Validation/business error: " + e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            AuditLogger.completeAction(successPrefix, null, false,
+                    e.getClass().getSimpleName());
+            throw e;
         }
+        AuditLogger.completeAction(successPrefix, id, true, "");
+        ConsoleUtils.printSuccess(successPrefix + " ID " + id + ".");
     }
 
     public static void execute(Runnable action, String successMessage) {
+        execute(action, successMessage, null);
+    }
+
+    public static void execute(Runnable action, String successMessage, Integer recordId) {
+        String auditAction = successMessage == null || successMessage.isBlank()
+                ? AuditLogger.currentScreen() : successMessage;
+        AuditLogger.beginAction(auditAction, recordId);
         try {
             action.run();
-            if (successMessage != null) {
-                ConsoleUtils.printSuccess(successMessage);
-            }
         } catch (IllegalArgumentException | DataAccessException e) {
+            AuditLogger.completeAction(auditAction, recordId, false,
+                    e.getClass().getSimpleName());
             ConsoleUtils.printError(e.getMessage());
             LoggerUtil.warn("Validation/business error: " + e.getMessage());
+            return;
+        } catch (RuntimeException e) {
+            AuditLogger.completeAction(auditAction, recordId, false,
+                    e.getClass().getSimpleName());
+            throw e;
+        }
+        AuditLogger.completeAction(auditAction, recordId, true, "");
+        if (successMessage != null) {
+            ConsoleUtils.printSuccess(successMessage);
         }
     }
 

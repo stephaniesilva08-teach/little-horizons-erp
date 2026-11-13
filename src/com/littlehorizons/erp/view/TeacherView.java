@@ -69,7 +69,7 @@ public class TeacherView {
         }
         readTeacher(teacher);
         ViewUtils.execute(() -> controller.update(teacher),
-                "Profesor actualizado correctamente.");
+                "Profesor actualizado correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -80,7 +80,7 @@ public class TeacherView {
             ConsoleUtils.printError("El profesor no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Profesor eliminado correctamente.");
+                    "Profesor eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }

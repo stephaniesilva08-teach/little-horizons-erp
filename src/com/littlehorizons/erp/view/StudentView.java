@@ -99,7 +99,7 @@ public class StudentView {
         }
         readStudent(student);
         ViewUtils.execute(() -> controller.update(student),
-                "Estudiante actualizado correctamente.");
+                "Estudiante actualizado correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -110,7 +110,7 @@ public class StudentView {
             ConsoleUtils.printError("El estudiante no existe.");
         } else if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.remove(id),
-                    "Estudiante retirado; se conserva su historial.");
+                    "Estudiante retirado; se conserva su historial.", id);
         }
         ConsoleUtils.pause();
     }
@@ -122,7 +122,7 @@ public class StudentView {
         boolean main = ConsoleUtils.readYesNo("¿Es acudiente principal?");
         boolean emergency = ConsoleUtils.readYesNo("¿Es contacto de emergencia?");
         ViewUtils.execute(() -> controller.assignGuardian(idStudent, idParent,
-                main, emergency), "Acudiente asociado correctamente.");
+                main, emergency), "Acudiente asociado correctamente.", idStudent);
         ConsoleUtils.pause();
     }
 

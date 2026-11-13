@@ -175,7 +175,7 @@ public class AcademicView {
         r.setObservations(ViewUtils.readWithDefault("Observaciones", r.getObservations()));
         r.setRecordDate(ViewUtils.readDateWithDefault("Fecha de registro", r.getRecordDate()));
         ViewUtils.execute(() -> controller.updateGrade(r),
-                "Nota actualizada correctamente.");
+                "Nota actualizada correctamente.", r.getIdRecord());
         ConsoleUtils.pause();
     }
 
@@ -183,7 +183,7 @@ public class AcademicView {
         int id = ConsoleUtils.readInt("ID de la nota: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeGrade(id),
-                    "Nota eliminada correctamente.");
+                    "Nota eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -287,7 +287,7 @@ public class AcademicView {
                 "Tardanza", "Excusa Médica"));
         a.setObservations(ViewUtils.readWithDefault("Observaciones", a.getObservations()));
         ViewUtils.execute(() -> controller.updateAttendance(a),
-                "Asistencia actualizada correctamente.");
+                "Asistencia actualizada correctamente.", a.getIdAttendance());
         ConsoleUtils.pause();
     }
 
@@ -295,7 +295,7 @@ public class AcademicView {
         int id = ConsoleUtils.readInt("ID de la asistencia: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeAttendance(id),
-                    "Asistencia eliminada correctamente.");
+                    "Asistencia eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -405,7 +405,7 @@ public class AcademicView {
         }
         readAssignment(current);
         ViewUtils.execute(() -> controller.updateAssignment(current),
-                "Asignación actualizada correctamente.");
+                "Asignación actualizada correctamente.", current.getIdAssignment());
         ConsoleUtils.pause();
     }
 
@@ -423,7 +423,7 @@ public class AcademicView {
         int id = ConsoleUtils.readInt("ID de la asignación: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeAssignment(id),
-                    "Asignación eliminada correctamente.");
+                    "Asignación eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -482,7 +482,7 @@ public class AcademicView {
         s.setIdAssignment(ConsoleUtils.readInt("ID de la asignación: "));
         readScheduleTimes(s);
         ViewUtils.execute(() -> controller.updateSchedule(s),
-                "Horario actualizado correctamente.");
+                "Horario actualizado correctamente.", s.getIdSchedule());
         ConsoleUtils.pause();
     }
 
@@ -497,7 +497,7 @@ public class AcademicView {
         int id = ConsoleUtils.readInt("ID del horario: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeSchedule(id),
-                    "Horario eliminado correctamente.");
+                    "Horario eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -572,7 +572,7 @@ public class AcademicView {
         e.setState(ConsoleUtils.readEnum("Nuevo estado", "Activa", "Retirada",
                 "Completada"));
         ViewUtils.execute(() -> controller.updateEnrollment(e),
-                "Inscripción actualizada correctamente.");
+                "Inscripción actualizada correctamente.", e.getIdEnrollment());
         ConsoleUtils.pause();
     }
 
@@ -580,7 +580,7 @@ public class AcademicView {
         int id = ConsoleUtils.readInt("ID de la inscripción: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeEnrollment(id),
-                    "Inscripción eliminada correctamente.");
+                    "Inscripción eliminada correctamente.", id);
         }
         ConsoleUtils.pause();
     }

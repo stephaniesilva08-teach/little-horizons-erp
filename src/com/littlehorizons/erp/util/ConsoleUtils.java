@@ -48,6 +48,9 @@ public final class ConsoleUtils {
             try {
                 int number = Integer.parseInt(value);
                 if (number >= min && number <= max) {
+                    if (prompt.trim().startsWith("Seleccione una opción")) {
+                        AuditLogger.recordMenuSelection(number);
+                    }
                     return number;
                 }
                 printError("El valor debe estar entre " + min + " y " + max + ".");
@@ -129,6 +132,7 @@ public final class ConsoleUtils {
     }
 
     public static void printHeader(String title) {
+        AuditLogger.recordScreenOpened(title);
         System.out.println();
         System.out.println("==========================================================");
         System.out.println("  " + title);
@@ -136,6 +140,7 @@ public final class ConsoleUtils {
     }
 
     public static void printSubHeader(String title) {
+        AuditLogger.recordScreenOpened(title);
         System.out.println();
         System.out.println("----------------------------------------------------------");
         System.out.println("  " + title);

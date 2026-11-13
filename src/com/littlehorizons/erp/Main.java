@@ -1,6 +1,8 @@
 package com.littlehorizons.erp;
 
+import com.littlehorizons.erp.util.AuditLogger;
 import com.littlehorizons.erp.util.ConnectionFactory;
+import com.littlehorizons.erp.util.ConsoleUtils;
 import com.littlehorizons.erp.util.Database;
 import com.littlehorizons.erp.util.LoggerUtil;
 import com.littlehorizons.erp.view.MainMenu;
@@ -29,6 +31,9 @@ public class Main {
             System.out.println("  Conexión a la base de datos establecida.");
             System.out.println("  Base de datos: erp_little_horizons");
             LoggerUtil.info("Application started");
+            String operator = ConsoleUtils.readNonEmpty(
+                    "Nombre del operador para la bitácora: ");
+            AuditLogger.startSession(operator);
             new MainMenu().show();
         } catch (SQLException e) {
             LoggerUtil.error("Could not connect to the database; SQLState="
@@ -39,6 +44,7 @@ public class Main {
             System.err.println("sean correctos y que el certificado TLS sea confiable.");
             System.exit(1);
         } finally {
+            AuditLogger.endSession();
             Database.shutdown();
         }
     }

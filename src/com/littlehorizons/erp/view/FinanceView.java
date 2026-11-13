@@ -108,7 +108,7 @@ public class FinanceView {
         }
         readConcept(concept);
         ViewUtils.execute(() -> controller.updateConcept(concept),
-                "Concepto actualizado correctamente.");
+                "Concepto actualizado correctamente.", id);
         ConsoleUtils.pause();
     }
 
@@ -126,7 +126,7 @@ public class FinanceView {
         int id = ConsoleUtils.readInt("ID del concepto: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeConcept(id),
-                    "Concepto eliminado correctamente.");
+                    "Concepto eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
@@ -174,7 +174,7 @@ public class FinanceView {
                 999999999);
         String reason = ConsoleUtils.readOptional("Motivo: ");
         ViewUtils.execute(() -> controller.setStudentConcept(idStudent, idConcept,
-                amount, reason), "Valor personalizado registrado correctamente.");
+                amount, reason), "Valor personalizado registrado correctamente.", idStudent);
         ConsoleUtils.pause();
     }
 
@@ -256,7 +256,7 @@ public class FinanceView {
         String state = ConsoleUtils.readEnum("Nuevo estado", "Pendiente", "Pagado",
                 "Anulado");
         ViewUtils.execute(() -> controller.updateChargeState(id, state),
-                "Estado del cargo actualizado.");
+                "Estado del cargo actualizado.", id);
         ConsoleUtils.pause();
     }
 
@@ -264,7 +264,7 @@ public class FinanceView {
         int id = ConsoleUtils.readInt("ID del cargo: ");
         if (ConsoleUtils.readYesNo("¿Confirma la eliminación?")) {
             ViewUtils.execute(() -> controller.removeCharge(id),
-                    "Cargo eliminado correctamente.");
+                    "Cargo eliminado correctamente.", id);
         }
         ConsoleUtils.pause();
     }
