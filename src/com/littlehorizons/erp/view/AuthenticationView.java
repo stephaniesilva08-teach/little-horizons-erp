@@ -67,6 +67,8 @@ public final class AuthenticationView {
                         username, displayName, password);
                 AuditLogger.completeAction("Crear administrador inicial",
                         user.id(), true, "");
+                AuditLogger.endSession();
+                AuditLogger.startSession(Integer.toString(user.id()), user.role().name());
                 AuditLogger.recordAuthenticationAttempt(true);
                 ConsoleUtils.printSuccess("Administrador creado. Sesión iniciada.");
                 return user;
