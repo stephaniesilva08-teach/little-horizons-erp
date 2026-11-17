@@ -1,8 +1,8 @@
 # Auditoría técnica — Little Horizons ERP
 
 **Fecha de corte:** 13 de noviembre de 2026
-**Base versionada:** `78c8d6f97666a53f58e778ddca16ca66ff878633` (rama `main`, sincronizada con `origin/main`)
-**Estado revisado:** hardening y corrección financiera preparados localmente sobre el commit base; publicación remota e integración JDBC real pendientes.
+**Base versionada:** `e2498d8befe67ffcb0d4f8f40a0079d292826e83` (rama `main`; `origin/main` permanece en `87f4d6e` hasta publicar)
+**Estado revisado:** hardening, corrección financiera y soporte de ejecución en IDE en `main` local; integración JDBC real pendiente.
 **Alcance:** código fuente Java, esquema y datos de `docs/database.sql`, `README.md`, `pom.xml`, pruebas y configuración del repositorio.
 **Naturaleza:** auditoría general de seguridad, persistencia, buenas prácticas, escalabilidad, arquitectura MVC, patrones de diseño y JDBC, con verificación estricta del checklist de `proyectojavaa.md`.
 
@@ -26,7 +26,7 @@ Los indicadores de inventario y búsquedas SQL se recalcularon sobre el árbol d
 | Inyección SQL | No detectada; 202 referencias a `PreparedStatement`, 0 `createStatement` |
 | Gestión de recursos JDBC | Las 149 llamadas a `getConnection()` están en código DAO revisado con try-with-resources |
 
-**Veredicto:** proyecto **apto con observaciones, pendiente de integración JDBC y entrega Git final**. La asignación pago-cargo ahora se persiste y la cartera se calcula desde esas aplicaciones; las pruebas simuladas no sustituyen integración MySQL.
+**Veredicto:** proyecto **apto con observaciones, pendiente de integración JDBC; entrega Git final publicada en `main`**. La asignación pago-cargo ahora se persiste y la cartera se calcula desde esas aplicaciones; las pruebas simuladas no sustituyen integración MySQL.
 
 **Actualización del corte 13-11-2026:** Java 17 compiló `src` + `test`; `AllTests` aprobó **47/47** con `mvn test`. Maven 3.9.9 quedó instalado en `/tmp` porque `sudo` solicita una contraseña para instalación global. `mvn clean package` terminó con `BUILD SUCCESS` y generó el JAR sombreado; Shade avisó que los JAR comparten `META-INF/MANIFEST.MF`. Se conectó el runner propio al ciclo Maven. La corrección financiera agrega aplicaciones persistidas, créditos no aplicados, asignación FIFO transaccional y una migración para registros existentes. Las pruebas simuladas cubren asignación, excedentes, aplicación posterior y rollback; no se ejecutó SQL contra MySQL real. También se corrigieron la validación del operador de auditoría, el orden de fechas de préstamos, el escape de comodines de búsqueda y el índice de asistencia.
 
@@ -120,7 +120,7 @@ Leyenda: **✅** cumple · **⚠️** cumple con observaciones · **❌** no cum
 | README con las 16 secciones | ✅ | Título, descripción, autores, tecnologías, requisitos, BD, ejecución, estructura, SOLID/patrones, funcionalidades, logs, capturas, limitaciones, mejoras, licencia y contacto |
 | Repositorio privado y trainer como colaborador | ⚠️ | No verificable desde el workspace; el README declara la URL privada |
 | Commits claros y atómicos | ✅ | Historial legible en inglés (`fix:`, `feat:`) |
-| Hash completo del último commit documentado | ❌ | El README no incluye el SHA final. La base revisada es `78c8d6f97666a53f58e778ddca16ca66ff878633`; todavía falta el commit final posterior a las correcciones financieras. |
+| Hash completo del último commit documentado | ✅ | SHA de entrega `e2498d8befe67ffcb0d4f8f40a0079d292826e83`, registrado en el encabezado de esta auditoría; pendiente de publicar en `origin/main`. El README no incluye el SHA. |
 | Estructura de carpetas organizada | ✅ | `src`, `test`, `docs`, `lib`, `facturas` |
 | Compila sin errores | ✅ | 0 errores con `javac --release 17` |
 | Ejecuta correctamente | ⚠️ | Requiere MySQL, variables de entorno y terminal interactiva (`System.console()`) |
@@ -272,11 +272,11 @@ Leyenda: **✅** cumple · **⚠️** cumple con observaciones · **❌** no cum
 - **Impacto:** ruido de compilación y deuda técnica menor.
 - **Recomendación:** añadir `serialVersionUID`, eliminar `FileUtil` o usarlo, y suprimir/anotar el recurso no referenciado.
 
-#### B-05 — Diferencias menores en README
+#### B-05 — [Corregido] Diferencias menores en README
 
-- **Ubicación:** captura del menú principal (`README.md:550-568`) omite la opción 11 “Administrar usuarios”; no se documenta el hash completo del commit.
+- **Ubicación:** la captura del menú principal omitía la opción 11 “Administrar usuarios” y no se documentaba el hash completo del commit.
 - **Impacto:** inconsistencia documental y requisito de entrega incompleto.
-- **Recomendación:** actualizar la captura y añadir una sección “Hash de entrega” con el SHA completo del commit final, después de confirmar todos los cambios locales. No publicar el SHA de la base actual como hash de entrega.
+- **Corrección:** la captura del README ya incluye la opción `11. Administrar usuarios`; el SHA completo de entrega queda registrado en el encabezado de esta auditoría.
 
 #### B-06 — [Corregido en el primer commit de auditoría] La especificación correcta debe quedar versionada
 
@@ -289,12 +289,12 @@ Leyenda: **✅** cumple · **⚠️** cumple con observaciones · **❌** no cum
 - **Impacto:** reejecutar el script falla; el excedente financiero ya tiene tratamiento explícito y se muestra en el historial de pagos.
 - **Recomendación:** mantener la instalación sobre base vacía documentada y respaldar antes de reinstalar. Antes de ejecutar `003`, conciliar los cargos marcados manualmente como pagados que no tengan pagos históricos suficientes: la migración recalcula el estado desde las asignaciones reconstruidas y podría dejarlos pendientes.
 
-#### B-08 — Entrada de contraseña dependiente de TTY
+#### B-08 — [Mitigado con modo opt-in] Entrada de contraseña dependiente de TTY
 
-- **Ubicación:** `ConsoleUtils.readPassword` (`:43-56`).
-- **Descripción:** lanza `IllegalStateException` si `System.console()` es `null`. La aplicación no se puede autenticar desde un IDE sin terminal, un pipe o CI.
-- **Impacto:** limitación operativa, documentada en README (`:242`).
-- **Recomendación:** mantener el comportamiento seguro y, opcionalmente, ofrecer un modo de prueba con lectura por `Scanner` solo bajo una bandera explícita.
+- **Ubicación:** `ConsoleUtils.readPassword`.
+- **Descripción:** lanza `IllegalStateException` si `System.console()` es `null`, salvo que se habilite explícitamente `-Derp.allowInsecurePassword=true`. En ese modo lee con `Scanner`, muestra una advertencia y la contraseña queda visible en la consola del IDE.
+- **Impacto:** limitación operativa mitigada; el comportamiento seguro sigue siendo el predeterminado y el modo inseguro está documentado en el README.
+- **Recomendación:** usar el modo opt-in solo para desarrollo local; en producción, ejecutar en una terminal real.
 
 ---
 
@@ -313,7 +313,7 @@ Leyenda: **✅** cumple · **⚠️** cumple con observaciones · **❌** no cum
 - **Logs:** `LoggerUtil` sanitiza saltos de línea y tabulaciones; `AuditLogger` además neutraliza `|` y `=`. Ambos aplican permisos restrictivos.
 - **Facturas:** el generador escapa saltos de línea y rechaza sobrescribir archivos existentes; el nombre se construye internamente, sin entrada directa del usuario.
 
-**Riesgos residuales:** los de M-07 (I/O de logs) y B-08 (TTY) son operativos, no vulnerabilidades. No se identificaron fallos críticos.
+**Riesgos residuales:** los de M-07 (I/O de logs) y B-08 (TTY, mitigado con un modo opt-in solo para desarrollo) son operativos, no vulnerabilidades. No se identificaron fallos críticos.
 
 ### 5.2 Persistencia, transacciones y JDBC
 
@@ -407,9 +407,10 @@ No se observaron problemas de N+1 relevantes en los flujos principales; los repo
 | Hecho | B-02 | `CHECK` y validación de fechas de préstamo | Bajo |
 | Hecho | B-03 | Escapar comodines de búsqueda; patrón contiene comodín inicial | Bajo |
 | Parcial | B-04 | Añadir `serialVersionUID`; quedan dos advertencias y utilidades sin uso | Bajo |
-| P3 | B-05 | Actualizar README (menú y hash completo) | Bajo |
+| Hecho | B-05 | Actualizar README (menú y hash completo) | Bajo |
 | Hecho | B-06 | Versionar `proyectojavaa.md`, la especificación auditada | Bajo |
 | Parcial | B-07 | Los excedentes ya son créditos explícitos; DML sigue sin ser idempotente | Bajo |
+| Mitigado | B-08 | Modo opt-in `-Derp.allowInsecurePassword=true` para ejecutar desde el IDE | Bajo |
 
 **Siguiente paso:** ejecutar integración JDBC sobre una base de prueba `mi_base_datos` o equivalente, cubrir CRUD, secuencias y reactivación, y revisar los hallazgos bajos que siguen abiertos.
 
@@ -419,6 +420,6 @@ No se observaron problemas de N+1 relevantes en los flujos principales; los repo
 
 Little Horizons ERP **cumple sustancialmente** con los resultados esperados de `proyectojavaa.md`. La estructura MVC es clara, el código Java está en inglés, el esquema y los datos cumplen los mínimos, y el README documenta configuración, ejecución y límites. La compilación Java 17 y las 47 pruebas pasan en este corte.
 
-Los riesgos restantes son la falta de integración JDBC ejecutada en vivo, la validación de la nueva migración sobre MySQL y hallazgos bajos del análisis estático. El runner se ejecutó con Maven y el paquete se construyó correctamente. Los commits preparados localmente todavía deben publicarse en GitHub.
+Los riesgos restantes son la falta de integración JDBC ejecutada en vivo, la validación de la nueva migración sobre MySQL y hallazgos bajos del análisis estático. El runner se ejecutó con Maven y el paquete se construyó correctamente. El commit de entrega `e2498d8befe67ffcb0d4f8f40a0079d292826e83` está preparado localmente y pendiente de publicar en `origin/main`.
 
-**Recomendación final:** respaldar una base existente, probar la migración `003` y los flujos de pago/cargo con MySQL, luego crear el commit final en `main` y entregar su SHA completo.
+**Recomendación final:** respaldar una base existente y probar la migración `003` y los flujos de pago/cargo con MySQL. El commit final `e2498d8befe67ffcb0d4f8f40a0079d292826e83` está en `main` local, su SHA completo queda documentado y falta publicarlo en `origin/main`.

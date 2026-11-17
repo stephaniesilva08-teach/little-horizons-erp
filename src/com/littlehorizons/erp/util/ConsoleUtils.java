@@ -15,6 +15,9 @@ import java.io.Console;
 public final class ConsoleUtils {
 
     private static final Scanner SCANNER = new Scanner(System.in);
+    private static final String ALLOW_INSECURE_PASSWORD =
+            "erp.allowInsecurePassword";
+    private static boolean insecurePasswordWarningShown;
 
     private ConsoleUtils() {
     }
@@ -43,8 +46,26 @@ public final class ConsoleUtils {
     public static char[] readPassword(String prompt) {
         Console console = System.console();
         if (console == null) {
-            throw new IllegalStateException("Para ingresar contraseñas de forma segura, "
-                    + "ejecute la aplicación en una terminal interactiva.");
+            if (!Boolean.getBoolean(ALLOW_INSECURE_PASSWORD)) {
+                throw new IllegalStateException("Para ingresar contraseñas de forma segura, "
+                        + "ejecute la aplicación en una terminal interactiva. Para depuración "
+                        + "local puede habilitar -D" + ALLOW_INSECURE_PASSWORD
+                        + "=true; la contraseña se mostrará en pantalla.");
+            }
+            if (!insecurePasswordWarningShown) {
+                printWarning("Modo de contraseña no interactivo habilitado: "
+                        + "la contraseña se mostrará en pantalla. "
+                        + "Úselo solo para desarrollo local.");
+                insecurePasswordWarningShown = true;
+            }
+            System.out.print(prompt);
+            if (!SCANNER.hasNextLine()) {
+                System.out.println();
+                System.out.println("\nFin de la entrada. Cerrando la aplicación.");
+                AuditLogger.endSession();
+                System.exit(0);
+            }
+            return SCANNER.nextLine().toCharArray();
         }
         char[] value = console.readPassword("%s", prompt);
         if (value == null) {

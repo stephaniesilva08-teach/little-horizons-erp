@@ -200,6 +200,10 @@ cd little-horizons-erp
 - Verificar que el JDK del proyecto sea 17 o superior.
 - Agregar `lib/mysql-connector-j-8.4.0.jar` al classpath si el IDE no lo detecta.
 - Alternativa Maven: abrir `pom.xml` como proyecto Maven.
+- **IntelliJ IDEA:** si el proyecto se abrió como carpeta y no aparece un módulo, abra
+  `pom.xml` como proyecto Maven o use **Add as Maven Project**. Sin módulo, IntelliJ no
+  habilita la ejecución de `Main`; marque `src` como *Sources Root* y `test` como
+  *Test Sources Root* si configura el módulo manualmente.
 
 ### 7.3. Compilar
 
@@ -246,9 +250,16 @@ java -jar target/erp-little-horizons-1.0.0.jar
 La aplicación verifica la conexión antes de mostrar el menú principal. Las facturas se
 crean en la carpeta `facturas/` del directorio desde el cual se ejecuta la aplicación.
 En el primer inicio, la consola permite crear el administrador inicial si aún no hay
-cuentas. Después pide usuario y contraseña; la contraseña se oculta al escribirla, por
-lo que debe ejecutarse desde una terminal interactiva compatible con `System.console()`.
-No existen credenciales predeterminadas.
+cuentas. Después pide usuario y contraseña; por defecto la contraseña se oculta al
+escribirla, por lo que debe ejecutarse desde una terminal interactiva compatible con
+`System.console()`. No existen credenciales predeterminadas.
+
+Para ejecutar desde el botón **Run** de IntelliJ IDEA, que no ofrece una terminal real,
+agregue `-Derp.allowInsecurePassword=true` en las *VM options* de la configuración de
+ejecución. En ese modo la contraseña se muestra en la consola del IDE y se emite una
+advertencia; úselo solo para desarrollo local, nunca en producción ni en equipos
+compartidos. La opción segura sigue siendo ejecutar desde una terminal real o desde la
+terminal integrada del IDE.
 
 > Antes de ejecutar, configure `ERP_DB_USER` y `ERP_DB_PASSWORD` como se explica en la
 > sección 6.2. La aplicación no incluye credenciales embebidas y no inicia sin ellas.
@@ -587,6 +598,7 @@ Evidencia de ejecución en consola:
   8. Módulo financiero y facturación
   9. Recursos y préstamos
  10. Reportes
+ 11. Administrar usuarios
   0. Salir
 Seleccione una opción:
 ```
