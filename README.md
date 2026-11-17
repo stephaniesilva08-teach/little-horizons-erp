@@ -123,8 +123,18 @@ registrados, por lo que un cargo marcado como pagado sin pago histórico suficie
 
 ### 6.2. Configuración de credenciales
 
-La aplicación **no incluye credenciales embebidas**. Antes de ejecutar, define las
-siguientes variables de entorno:
+La configuración local se lee desde `.env` en la carpeta raíz del proyecto. Ese
+archivo está excluido de Git. Crea uno con estas entradas y ajusta los valores a tu
+instalación:
+
+```properties
+ERP_DB_USER=erp_user
+ERP_DB_PASSWORD=una_clave_segura
+ERP_DB_URL=jdbc:mysql://localhost:3306/erp_little_horizons?sslMode=VERIFY_IDENTITY&serverTimezone=UTC&characterEncoding=UTF-8
+```
+
+La aplicación también acepta variables de entorno cuando una clave no está definida
+en `.env`.
 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
@@ -141,24 +151,6 @@ Si el usuario no existe, se puede crear uno dedicado con:
 CREATE USER IF NOT EXISTS 'erp_user'@'localhost' IDENTIFIED BY 'una_clave_segura';
 GRANT SELECT, INSERT, UPDATE, DELETE ON erp_little_horizons.* TO 'erp_user'@'localhost';
 FLUSH PRIVILEGES;
-```
-
-Configurar en Linux/macOS:
-
-```bash
-export ERP_DB_USER='erp_user'
-export ERP_DB_PASSWORD='una_clave_segura'
-# Opcional:
-# Para conexiones remotas, configure un certificado TLS confiable cuyo nombre coincida
-# con el host de la URL. Solo para MySQL local de desarrollo sin TLS, puede establecer:
-# export ERP_DB_URL='jdbc:mysql://localhost:3306/erp_little_horizons?sslMode=DISABLED&serverTimezone=UTC&characterEncoding=UTF-8'
-```
-
-En Windows CMD:
-
-```bat
-set ERP_DB_USER=erp_user
-set ERP_DB_PASSWORD=una_clave_segura
 ```
 
 La conexión exige TLS y valida la identidad del servidor por defecto. No use
