@@ -646,10 +646,6 @@ garantía comercial ni soporte oficial.
 
 - **Autora:** Stephanie Silva
 - **Correo personal:** nathaliasilva0816@gmail.com
-- **Institución:** Colegio Internacional Little Horizons S.A.S.
-- **Correo institucional:** soporte@littlehorizons.edu.co
-- **Teléfono:** +57 1 234 5678
-- **Dirección:** Calle 12 #34-56, Bogotá, Colombia
 - **Repositorio:** [https://github.com/stephaniesilva08-teach/little-horizons-erp](https://github.com/stephaniesilva08-teach/little-horizons-erp) (repositorio privado con el trainer como colaborador).
 
 ---
