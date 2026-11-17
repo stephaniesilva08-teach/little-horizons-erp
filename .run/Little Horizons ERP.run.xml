@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Little Horizons ERP" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.littlehorizons.erp.Main" />
+    <module name="erp-little-horizons" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="EMULATE_TERMINAL" value="true" />
+    <option name="VM_PARAMETERS" value="-Derp.allowInsecurePassword=true" />
+    <option name="PASS_PARENT_ENVS" value="true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
