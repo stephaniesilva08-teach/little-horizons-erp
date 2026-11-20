@@ -507,6 +507,20 @@ Gracias por su pago.
 - Préstamos vencidos.
 - Resumen de matrícula por grado.
 
+### 10.9. Importación masiva de asistencias (TEST)
+
+- Nueva opción `12. TEST - Importar Asistencias desde CSV` en el menú principal.
+- Lee `asistencias_importar.csv` desde la raíz del proyecto, con cabecera exacta
+  `id_estudiante;id_materia;fecha;estado`.
+- Procesa cada línea de forma independiente: las líneas válidas se insertan en
+  `asistencias` y las inválidas se cuentan como fallidas sin detener el proceso.
+- Valida estudiante y materia existentes, fecha `YYYY-MM-DD`, exactamente cuatro campos
+  y estados `Presente`, `Ausente`, `Tardanza` o `Excusa Médica`.
+- Ignora líneas vacías y muestra un resumen final con total, exitosas y fallidas.
+- El repositorio incluye un `asistencias_importar.csv` de ejemplo con IDs reales.
+- En el inicio de sesión se puede presionar **Enter** en el campo de usuario para
+  entrar en modo de prueba sin credenciales.
+
 ---
 
 ## 11. Manejo de Errores y Logs
@@ -591,6 +605,7 @@ Evidencia de ejecución en consola:
   9. Recursos y préstamos
  10. Reportes
  11. Administrar usuarios
+ 12. TEST - Importar Asistencias desde CSV
   0. Salir
 Seleccione una opción:
 ```

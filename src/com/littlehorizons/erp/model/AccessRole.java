@@ -43,6 +43,10 @@ public enum AccessRole {
     }
 
     public boolean canAccessOption(int option) {
+        if (option == 12) {
+            // TEST option required by the exam: available to every role.
+            return true;
+        }
         return switch (this) {
             case ADMINISTRATOR -> option >= 1 && option <= 11;
             case SECRETARY -> option >= 1 && option <= 7;

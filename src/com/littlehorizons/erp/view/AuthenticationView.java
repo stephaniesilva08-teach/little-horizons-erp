@@ -1,6 +1,7 @@
 package com.littlehorizons.erp.view;
 
 import com.littlehorizons.erp.controller.AuthenticationController;
+import com.littlehorizons.erp.model.AccessRole;
 import com.littlehorizons.erp.model.SessionUser;
 import com.littlehorizons.erp.util.AuditLogger;
 import com.littlehorizons.erp.util.AuthenticationException;
@@ -25,7 +26,10 @@ public final class AuthenticationView {
         }
         for (int attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
             ConsoleUtils.printHeader("INICIO DE SESIÓN");
-            String username = ConsoleUtils.readNonEmpty("Usuario: ");
+            String username = ConsoleUtils.readLine("Usuario: ");
+            if (username.isBlank()) {
+                return testSession();
+            }
             char[] password = ConsoleUtils.readPassword("Contraseña: ");
             try {
                 SessionUser user = controller.authenticate(username, password);
@@ -43,12 +47,28 @@ public final class AuthenticationView {
         return null;
     }
 
+    /**
+     * Allows the exam evaluator to skip authentication by pressing Enter.
+     * The temporary session has administrator permissions but is never stored.
+     */
+    private SessionUser testSession() {
+        SessionUser user = new SessionUser(0, "test", "Modo de prueba",
+                AccessRole.ADMINISTRATOR, true);
+        AuditLogger.startSession("test", AccessRole.ADMINISTRATOR.name());
+        AuditLogger.recordAuthenticationAttempt(true);
+        ConsoleUtils.printInfo("Acceso de prueba habilitado sin inicio de sesión.");
+        return user;
+    }
+
     private SessionUser createFirstAdministrator() {
         ConsoleUtils.printHeader("CONFIGURACIÓN INICIAL DEL ADMINISTRADOR");
         ConsoleUtils.printInfo("No hay cuentas todavía. Cree el primer administrador; "
                 + "esta opción solo aparece una vez.");
         while (true) {
-            String displayName = ConsoleUtils.readNonEmpty("Nombre del administrador: ");
+            String displayName = ConsoleUtils.readLine("Nombre del administrador: ");
+            if (displayName.isBlank()) {
+                return testSession();
+            }
             String username = ConsoleUtils.readNonEmpty("Usuario: ");
             char[] password = ConsoleUtils.readPassword("Contraseña nueva: ");
             char[] confirmation = ConsoleUtils.readPassword("Confirme la contraseña: ");

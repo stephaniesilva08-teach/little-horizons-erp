@@ -26,6 +26,7 @@ public class MainMenu {
     private final FinanceView financeView = new FinanceView();
     private final ResourceView resourceView = new ResourceView();
     private final ReportView reportView = new ReportView();
+    private final AttendanceImportView attendanceImportView = new AttendanceImportView();
 
     public MainMenu(SessionUser currentUser) {
         this.currentUser = currentUser;
@@ -49,8 +50,9 @@ public class MainMenu {
             if (allowed(9)) System.out.println("  9. Recursos y préstamos");
             if (allowed(10)) System.out.println(" 10. Reportes");
             if (allowed(11)) System.out.println(" 11. Administrar usuarios");
+            if (allowed(12)) System.out.println(" 12. TEST - Importar Asistencias desde CSV");
             System.out.println("  0. Salir");
-            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 11);
+            int option = ConsoleUtils.readInt("Seleccione una opción: ", 0, 12);
             if (option != 0 && !allowed(option)) {
                 AuditLogger.recordAccessDenied(option, currentUser.role().name());
                 ConsoleUtils.printError("Su rol no tiene acceso a esa opción.");
@@ -68,6 +70,7 @@ public class MainMenu {
                 case 9 -> resourceView.show();
                 case 10 -> reportView.show();
                 case 11 -> systemUserView.show();
+                case 12 -> attendanceImportView.show();
                 case 0 -> exit = true;
                 default -> { }
             }
