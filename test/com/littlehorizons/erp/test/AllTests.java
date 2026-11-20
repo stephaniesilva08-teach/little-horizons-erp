@@ -19,6 +19,7 @@ public final class AllTests {
         TestSuite suite = new TestSuite();
         ValidatorTest.register(suite);
         TextInvoiceGeneratorTest.register(suite);
+        AttendanceImportControllerTest.register(suite);
         StudentControllerTest.register(suite);
         AcademicControllerTest.register(suite);
         ExtracurricularControllerTest.register(suite);
